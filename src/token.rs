@@ -130,7 +130,7 @@ impl Tokensizer {
             ';' => self.add_token(TokenType::SEMICOLON, TokenLiteral::Null),
             '*' => self.add_token(TokenType::STAR, TokenLiteral::Null),
             _ => {
-      
+                error::error(self.line, &format!("Unexpected character: {}", c));
             }
         }
     }
