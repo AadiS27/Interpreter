@@ -109,15 +109,68 @@ impl Tokensizer {
     fn is_at_end(&self) -> bool {
         self.current >= self.src.len()
     }
+
+
+
     fn add_token(&mut self, token_type: TokenType, literal: TokenLiteral) {
         let text = self.src[self.start..self.current].to_string();
         self.tokens
             .push(Token::new(token_type, text, literal, self.line));
     }
+
+
+
     fn advance(&mut self) -> char {
         self.current += 1;
         self.src.chars().nth(self.current - 1).unwrap()
     }
+
+
+    fn peek(&self) -> Option<char> {
+        self.src.chars().nth(self.current)
+    }
+
+
+    //this function is used to scan the string
+    fn string(&mut self) {
+        while self.peek() != Some('"') && !self.is_at_end() {
+            if self.peek() == Some('\n') {
+                self.line += 1;
+            }
+            self.advance();
+        }
+    
+        if self.is_at_end() {
+            error::error(self.line, "Unterminated string", "");
+            return;
+        }
+        self.advance();
+
+        // Extract the string value without the surrounding quotes
+        let value = self.src[self.start + 1..self.current - 1].to_string();
+        self.add_token(TokenType::STRING, TokenLiteral::String(value));
+    }
+
+        fn isdigit(c: char) -> bool {
+        c.is_digit(10)
+    }
+
+    fn number(&mut self) {
+        while Tokensizer::isdigit(self.peek().unwrap()) {
+            self.advance();
+        }
+        // Look for a fractional part
+        if self.peek() == Some('.') && Tokensizer::isdigit(self.peek().unwrap()) {
+            // Consume the "."
+            self.advance();
+            while Tokensizer::isdigit(self.peek().unwrap()) {
+                self.advance();
+            }
+        }
+        let value = self.src[self.start..self.current].parse::<f64>().unwrap();
+        self.add_token(TokenType::NUMBER, TokenLiteral::Number(value));
+    }
+
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
@@ -174,12 +227,31 @@ impl Tokensizer {
                    self.add_token(TokenType::SLASH, TokenLiteral::Null);
             }
                 }
+                    
+               ' ' | '\r' | '\t' => {
+            // Ignore whitespace
+               }
+                 '\n' => {
+            self.line += 1; // Track line numbers correctly
+                 }
 
-            _ => {
-                error::error(self.line, &format!("Unexpected character: {}", c));
+            '"' => self.string(),//here we are calling the string function
+
+            //TODO: Implement number tokenization
+                        _ => {
+                let line_content: String = self.src
+                .lines()
+                .nth(self.line - 1)
+                .unwrap_or("")
+                .to_string();
+
+            error::error(self.line, &format!("Unexpected character: '{}'", c), &line_content);
             }
         }
     }
+
+
+
     pub fn tokenize(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;

@@ -1,6 +1,9 @@
-use std::process;
-
-pub fn error(line: usize, message: &str) {
-    eprintln!("[line {}] Error: {}", line, message);
-    process::exit(1);
+pub fn error(line: usize, message: &str, context: &str) {
+    eprintln!(
+        "[line {}] Error: {}\n{}\n{}^",
+        line,
+        message,
+        context,
+        " ".repeat(context.len())
+    );
 }
