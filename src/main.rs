@@ -16,10 +16,9 @@ fn main() {
     let source = fs::read_to_string(filename).expect("Failed to read file");
     
     let mut tokenizer = Tokensizer::new(source);
-    let tokens = tokenizer.tokenize();
+    let _tokens = tokenizer.tokenize();
     
    
         tokenizer.print_tokens();
     
- 
 }

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use crate::error;
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
+#[derive(Debug, Clone)]//	Allows println!("{:?}", obj); for debugging.  Allows obj.clone(); for copying data.
+#[allow(dead_code)]//Prevents warnings for unused code.
 enum TokenLiteral {
     String(String),
     Number(f64),
@@ -64,10 +64,12 @@ enum TokenType {
     GREATER_EQUAL,
     LESS,
     LESS_EQUAL,
+
     // Literals.
     IDENTIFIER,
     STRING,
     NUMBER,
+
     // Keywords.
     AND,
     CLASS,
@@ -129,6 +131,50 @@ impl Tokensizer {
             '+' => self.add_token(TokenType::PLUS, TokenLiteral::Null),
             ';' => self.add_token(TokenType::SEMICOLON, TokenLiteral::Null),
             '*' => self.add_token(TokenType::STAR, TokenLiteral::Null),
+            '=' => {
+                if self.src.chars().nth(self.current).unwrap() == '=' {
+                    self.current += 1;
+                    self.add_token(TokenType::EQUAL_EQUAL, TokenLiteral::Null);
+                } else {
+                    self.add_token(TokenType::EQUAL, TokenLiteral::Null);
+                }
+            }
+            '!'=>{
+                if self.src.chars().nth(self.current).unwrap() == '=' {//check the next one if it is equal then add the token
+                    self.current += 1;
+                    self.add_token(TokenType::BANG_EQUAL, TokenLiteral::Null);
+                } else {//else add Bang token
+                    self.add_token(TokenType::BANG, TokenLiteral::Null);
+                }
+            
+            }
+           '<' => {
+                     if self.src.chars().nth(self.current) == Some('=') { // ✅ Safe check
+                 self.current += 1;
+                 self.add_token(TokenType::LESS_EQUAL, TokenLiteral::Null);
+             } else {
+                 self.add_token(TokenType::LESS, TokenLiteral::Null);
+                  }
+                }
+
+            '>'=>{
+                if self.src.chars().nth(self.current) == Some('=') {//check the next one if it is equal then add the token
+                    self.current += 1;
+                    self.add_token(TokenType::GREATER_EQUAL, TokenLiteral::Null);
+                } else {//else add Greater token
+                    self.add_token(TokenType::GREATER, TokenLiteral::Null);
+                }
+            }
+            '/' => {
+              if self.src.chars().nth(self.current) == Some('/') {//check the next one if it is equal then add the token used some because it returns an option and we are getting initially none as unwrap cant be none
+              while self.src.chars().nth(self.current) != Some('\n') && !self.is_at_end() {
+              self.current += 1;
+                  }
+             } else {
+                   self.add_token(TokenType::SLASH, TokenLiteral::Null);
+            }
+                }
+
             _ => {
                 error::error(self.line, &format!("Unexpected character: {}", c));
             }
