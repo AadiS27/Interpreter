@@ -151,26 +151,60 @@ impl Tokensizer {
         self.add_token(TokenType::STRING, TokenLiteral::String(value));
     }
 
-        fn isdigit(c: char) -> bool {
-        c.is_digit(10)
+
+
+
+    fn isdigit(c: char) -> bool {
+        c.is_ascii_digit()
     }
+    
 
     fn number(&mut self) {
-        while Tokensizer::isdigit(self.peek().unwrap()) {
+        while self.peek().map_or(false, Self::isdigit) {
             self.advance();
         }
+    
         // Look for a fractional part
-        if self.peek() == Some('.') && Tokensizer::isdigit(self.peek().unwrap()) {
-            // Consume the "."
-            self.advance();
-            while Tokensizer::isdigit(self.peek().unwrap()) {
-                self.advance();
+        let mut has_fraction = false;
+        if self.peek() == Some('.') {
+            // Ensure the next character is a digit before consuming the dot
+            if self.peek_next().map_or(false, Self::isdigit) {
+                has_fraction = true;
+                self.advance(); // Consume the '.'
+                
+                while self.peek().map_or(false, Self::isdigit) {
+                    self.advance();
+                }
             }
         }
-        let value = self.src[self.start..self.current].parse::<f64>().unwrap();
-        self.add_token(TokenType::NUMBER, TokenLiteral::Number(value));
-    }
+    
+        // Convert the lexeme to a floating-point number
+    
+    
+        // If no fractional part exists, ensure .0 is appended
+        // Convert the lexeme to a floating-point number
+let lexeme = &self.src[self.start..self.current];
+let float_lexeme = if lexeme.contains('.') {
+    lexeme.to_string()
+} else {
+    format!("{}.0", lexeme) // Append .0 if it's an integer
+};
 
+
+    
+        if let Ok(value) = float_lexeme.parse::<f64>() {
+            self.add_token(TokenType::NUMBER, TokenLiteral::Number(value));
+        } else {
+            error::error(self.line, &format!("Invalid number format: {}", lexeme), "");
+        }
+    }
+    
+    fn peek_next(&self) -> Option<char> {
+        self.src.chars().nth(self.current + 1)
+    }
+    
+    
+    
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
@@ -179,7 +213,21 @@ impl Tokensizer {
             '{' => self.add_token(TokenType::LEFT_BRACE, TokenLiteral::Null),
             '}' => self.add_token(TokenType::RIGHT_BRACE, TokenLiteral::Null),
             ',' => self.add_token(TokenType::COMMA, TokenLiteral::Null),
-            '.' => self.add_token(TokenType::DOT, TokenLiteral::Null),
+           '.' => {
+         if self.peek().map_or(false, |c| c.is_digit(10)) {
+          self.advance(); // Consume '.'
+             while self.peek().map_or(false, |c| c.is_digit(10)) {
+             self.advance();
+        }
+
+        let value: f64 = self.src[self.start..self.current].parse().unwrap();
+        self.add_token(TokenType::NUMBER, TokenLiteral::Number(value));
+            }        else {
+           self.add_token(TokenType::DOT, TokenLiteral::Null);
+            }
+        }
+
+
             '-' => self.add_token(TokenType::MINUS, TokenLiteral::Null),
             '+' => self.add_token(TokenType::PLUS, TokenLiteral::Null),
             ';' => self.add_token(TokenType::SEMICOLON, TokenLiteral::Null),
@@ -237,7 +285,8 @@ impl Tokensizer {
 
             '"' => self.string(),//here we are calling the string function
 
-            //TODO: Implement number tokenization
+           '0'..='9' => self.number(), // Call number() when encountering a digit
+            
                         _ => {
                 let line_content: String = self.src
                 .lines()
