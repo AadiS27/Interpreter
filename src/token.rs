@@ -12,7 +12,7 @@ impl Display for TokenLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TokenLiteral::String(s) => write!(f, "{}", s),
-            TokenLiteral::Number(n) => write!(f, "{}", n),
+            TokenLiteral::Number(n  ) => write!(f, "{}", n),
             TokenLiteral::Identifier(s) => write!(f, "{}", s),
             TokenLiteral::Null => write!(f, "null"),
         }
@@ -193,6 +193,7 @@ let float_lexeme = if lexeme.contains('.') {
     
         if let Ok(value) = float_lexeme.parse::<f64>() {
             self.add_token(TokenType::NUMBER, TokenLiteral::Number(value));
+           
         } else {
             error::error(self.line, &format!("Invalid number format: {}", lexeme), "");
         }
