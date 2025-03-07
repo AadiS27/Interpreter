@@ -23,15 +23,15 @@ pub struct Token {
     token_type: TokenType,
     lexeme: String,
     literal: TokenLiteral,
-    line: usize,
+   
 }
 impl Token {
-    fn new(token_type: TokenType, lexeme: String, literal: TokenLiteral, line: usize) -> Self {
+    fn new(token_type: TokenType, lexeme: String, literal: TokenLiteral) -> Self {
         Self {
             token_type,
             lexeme,
             literal,
-            line,
+          
         }
     }
 }
@@ -115,7 +115,7 @@ impl Tokensizer {
     fn add_token(&mut self, token_type: TokenType, literal: TokenLiteral) {
         let text = self.src[self.start..self.current].to_string();
         self.tokens
-            .push(Token::new(token_type, text, literal, self.line));
+            .push(Token::new(token_type, text, literal));
     }
 
 
@@ -165,11 +165,11 @@ impl Tokensizer {
         }
     
         // Look for a fractional part
-        let mut has_fraction = false;
+        let mut _has_fraction = false;
         if self.peek() == Some('.') {
             // Ensure the next character is a digit before consuming the dot
             if self.peek_next().map_or(false, Self::isdigit) {
-                has_fraction = true;
+                _has_fraction = true;
                 self.advance(); // Consume the '.'
                 
                 while self.peek().map_or(false, Self::isdigit) {
@@ -179,7 +179,6 @@ impl Tokensizer {
         }
     
         // Convert the lexeme to a floating-point number
-    
     
         // If no fractional part exists, ensure .0 is appended
         // Convert the lexeme to a floating-point number
@@ -310,7 +309,7 @@ let float_lexeme = if lexeme.contains('.') {
             TokenType::EOF,
             "".into(),
             TokenLiteral::Null,
-            self.line,
+           
         ));
         self.tokens.clone()
     }
