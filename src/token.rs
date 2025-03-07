@@ -12,7 +12,13 @@ impl Display for TokenLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TokenLiteral::String(s) => write!(f, "{}", s),
-            TokenLiteral::Number(n  ) => write!(f, "{}", n),
+            TokenLiteral::Number(n) => {
+                if n.fract() == 0.0 {
+                    write!(f, "{:.1}", n) // If integer, show as 12.0
+                } else {
+                    write!(f, "{}", n) // If decimal, show normally (e.g., 12.34)
+                }
+            },
             TokenLiteral::Identifier(s) => write!(f, "{}", s),
             TokenLiteral::Null => write!(f, "null"),
         }
