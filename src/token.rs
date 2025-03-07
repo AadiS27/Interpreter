@@ -209,6 +209,39 @@ let float_lexeme = if lexeme.contains('.') {
         self.src.chars().nth(self.current + 1)
     }
     
+
+    fn isalpha(c: char) -> bool {
+        c.is_ascii_alphabetic() || c == '_'
+    }
+
+    fn identifier(&mut self) {
+        while self.peek().map_or(false, Self::isalpha) {
+            self.advance();
+        }
+    
+        let text = &self.src[self.start..self.current];
+        let token_type = match text {
+            "and" => TokenType::AND,
+            "class" => TokenType::CLASS,
+            "else" => TokenType::ELSE,
+            "false" => TokenType::FALSE,
+            "for" => TokenType::FOR,
+            "fun" => TokenType::FUN,
+            "if" => TokenType::IF,
+            "nil" => TokenType::NIL,
+            "or" => TokenType::OR,
+            "print" => TokenType::PRINT,
+            "return" => TokenType::RETURN,
+            "super" => TokenType::SUPER,
+            "this" => TokenType::THIS,
+            "true" => TokenType::TRUE,
+            "var" => TokenType::VAR,
+            "while" => TokenType::WHILE,
+            _ => TokenType::IDENTIFIER,
+        };
+    
+        self.add_token(token_type, TokenLiteral::Null);
+    }
     
     
     fn scan_token(&mut self) {
@@ -292,6 +325,8 @@ let float_lexeme = if lexeme.contains('.') {
             '"' => self.string(),//here we are calling the string function
 
            '0'..='9' => self.number(), // Call number() when encountering a digit
+
+            _ if Self::isalpha(c) => self.identifier(),
             
                         _ => {
                 let line_content: String = self.src
