@@ -2,7 +2,7 @@ use std::fmt::Display;
 use crate::error;
 #[derive(Debug, Clone)]//	Allows println!("{:?}", obj); for debugging.  Allows obj.clone(); for copying data.
 #[allow(dead_code)]//Prevents warnings for unused code.
-enum TokenLiteral {
+pub enum TokenLiteral {
     String(String),
     Number(f64),
     Identifier(String),

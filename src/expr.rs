@@ -4,10 +4,10 @@ use crate::token::Token;
 
 
 pub trait ExprVisitor {
-    fn visit_binary(&self, expr: &Binary);
-    fn visit_grouping(&self, expr: &Grouping);
-    fn visit_literal(&self, expr: &Literal);
-    fn visit_unary(&self, expr: &Unary);
+    fn visit_binary(&self, expr: &Binary) -> String;
+    fn visit_grouping(&self, expr: &Grouping) -> String;
+    fn visit_literal(&self, expr: &Literal) -> String;
+    fn visit_unary(&self, expr: &Unary) -> String;
 }
 // pub trait Expr {
 //     fn accept<T>(&self, visitor: & ExprVisitor<T>) -> T;
@@ -48,8 +48,6 @@ impl Grouping {
     }
 }
 
-
-
 pub struct Literal {
     pub value: Box< dyn std::any::Any>,
 }
@@ -78,13 +76,13 @@ impl Unary {
     }
 }
 
- impl Expr {
-    pub fn accept(&self, visitor: &dyn ExprVisitor) {
+impl Expr {
+    pub fn accept(&self, visitor: &dyn ExprVisitor) -> String {
         match self {
             Expr::Binary(b) => visitor.visit_binary(b),
             Expr::Grouping(g) => visitor.visit_grouping(g),
             Expr::Literal(l) => visitor.visit_literal(l),
             Expr::Unary(u) => visitor.visit_unary(u),
-  }
-  }
+        }
+    }
 }

@@ -2,8 +2,8 @@ mod error;
 mod token;
 mod astprinter;
 mod expr;
-use std::env;
 use std::fs;
+use std::env;
 use token::Tokensizer;
 
 fn main() {
