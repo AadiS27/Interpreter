@@ -26,9 +26,9 @@ impl Display for TokenLiteral {
 }
 #[derive(Debug, Clone)]
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    literal: TokenLiteral,
+   pub token_type: TokenType,
+  pub  lexeme: String,
+   pub literal: TokenLiteral,
    
 }
 impl Token {
@@ -48,7 +48,7 @@ impl Display for Token {
 }
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, Clone, Copy)]
-enum TokenType {
+ pub enum TokenType {
     // Single-character tokens.
     LEFT_PAREN,
     RIGHT_PAREN,
