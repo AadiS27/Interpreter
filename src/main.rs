@@ -5,6 +5,8 @@ mod expr;
 use std::fs;
 use std::env;
 use token::Tokensizer;
+mod parser;
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -20,6 +22,12 @@ fn main() {
     let _tokens = tokenizer.tokenize();
     
    
-        tokenizer.print_tokens();
+   
+
+        let mut parser = parser::Parser::new(_tokens);
+        match parser.parse() {
+            Some(expression) => println!("{}", astprinter::AstPrinter::new().print(&expression)),
+            None => eprintln!("Parsing failed due to syntax errors."),
+        }
     
 }

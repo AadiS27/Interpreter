@@ -5,6 +5,10 @@ use crate::token::{Token, TokenType, TokenLiteral};
 pub struct AstPrinter;
 
 impl AstPrinter {
+
+    pub fn new() -> Self {
+        AstPrinter
+    }
     pub fn print(&self, expr: &Expr) -> String {
         expr.accept(self) // Now it returns the AST as a string
     }

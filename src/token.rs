@@ -30,6 +30,7 @@ pub struct Token {
   pub  lexeme: String,
    pub literal: TokenLiteral,
    
+   
 }
 impl Token {
     fn new(token_type: TokenType, lexeme: String, literal: TokenLiteral) -> Self {
@@ -48,6 +49,7 @@ impl Display for Token {
 }
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, Clone, Copy)]
+#[derive(PartialEq)]
  pub enum TokenType {
     // Single-character tokens.
     LEFT_PAREN,
