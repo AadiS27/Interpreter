@@ -28,7 +28,7 @@ impl Display for TokenLiteral {
 pub struct Token {
    pub token_type: TokenType,
   pub  lexeme: String,
-   pub literal: TokenLiteral,
+  pub literal: Option<TokenLiteral>, 
    
    
 }
@@ -37,14 +37,13 @@ impl Token {
         Self {
             token_type,
             lexeme,
-            literal,
-          
+            literal: Some(literal),
         }
     }
 }
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?} {} {}", self.token_type, self.lexeme, self.literal)
+        write!(f, "{:?} {} {:?}", self.token_type, self.lexeme, self.literal)
     }
 }
 #[allow(dead_code, non_camel_case_types)]

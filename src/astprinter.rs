@@ -1,5 +1,6 @@
 use crate::expr::{Expr, ExprVisitor, Binary, Grouping, Literal, Unary};
 use crate::token::{Token, TokenType, TokenLiteral};
+use std::sync::Arc;
 
 
 pub struct AstPrinter;
@@ -53,20 +54,20 @@ fn main() {
             operator: Token {
                 lexeme: "-".to_string(),
                 token_type: TokenType::MINUS,
-                literal: TokenLiteral::Null,
+                literal: Some(TokenLiteral::Null),
             },
             right: Box::new(Expr::Literal(Literal {
-                value: Box::new("123".to_string()),
+                value: Arc::new("123".to_string()),
             })),
         })),
         operator: Token {
             lexeme: "*".to_string(),
             token_type: TokenType::STAR,
-            literal: TokenLiteral::Null,
+            literal: Some(TokenLiteral::Null),
         },
         right: Box::new(Expr::Grouping(Grouping {
             expression: Box::new(Expr::Literal(Literal {
-                value: Box::new("45.67".to_string()),
+                value: Arc::new("45.67".to_string()),
             })),
         })),
     });

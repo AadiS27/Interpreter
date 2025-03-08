@@ -1,5 +1,6 @@
-use crate::token::{Token, TokenType};
+use crate::token::{Token, TokenType, TokenLiteral};
 use crate::expr::{Expr, Binary, Unary, Literal, Grouping};
+use std::sync::Arc;
 #[derive(Debug)]
 pub struct Parser {
     tokens: Vec<Token>,
@@ -121,24 +122,29 @@ impl Parser {
     fn primary(&mut self) -> Expr {
         if self.match_tokens(&[TokenType::FALSE]) {
             return Expr::Literal(Literal {
-                value: Box::new(false),
+                value: Arc::new(false),
             });
         }
         if self.match_tokens(&[TokenType::TRUE]) {
             return Expr::Literal(Literal {
-                value: Box::new(true),
+                value: Arc::new(true),
             });
         }
         if self.match_tokens(&[TokenType::NIL]) {
             return Expr::Literal(Literal {
-                value: Box::new(()), // Using () as Rust's equivalent of `nil`
+                value: Arc::new(( )), // Using () as Rust's equivalent of `nil`
             });
         }
         if self.match_tokens(&[TokenType::NUMBER, TokenType::STRING]) {
-            return Expr::Literal(Literal {
-                value: Box::new(self.previous().literal.clone()),
-            });
+            if let Some(value) = self.previous().literal.clone() {
+                return Expr::Literal(Literal::new(value));
+            }
+            // Handle the case where the token has no literal value
+            return Expr::Literal(Literal::new(TokenLiteral::Null));
         }
+        
+        
+        
     
         if self.match_tokens(&[TokenType::LEFT_PAREN]) {
             let expr = self.expression().unwrap();

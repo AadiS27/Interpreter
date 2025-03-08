@@ -1,6 +1,6 @@
 // Generated Rust AST for Expr
 use crate::token::Token;
-
+use std::any::Any;
 
 
 pub trait ExprVisitor {
@@ -48,15 +48,33 @@ impl Grouping {
     }
 }
 
+
+
+use std::sync::Arc;
+use std::fmt::Debug;
+use crate::token::TokenLiteral;  // Import TokenLiteral
+
+#[derive(Clone)]
 pub struct Literal {
-    pub value: Box< dyn std::any::Any>,
+    pub value: Arc<dyn Any + Send + Sync>,
 }
 
 impl Literal {
-    pub fn new(value: Box<dyn std::any::Any>) -> Self {
+    pub fn new(value: TokenLiteral) -> Self {
         Literal {
-            value: value,
+            value: Arc::new(value),  // Store TokenLiteral directly
         }
+    }
+
+    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+        self.value.downcast_ref::<T>()
+    }
+}
+
+// Debug implementation for easier printing
+impl Debug for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Literal(...)")
     }
 }
 
