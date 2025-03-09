@@ -1,5 +1,6 @@
 use crate::expr::Expr;
-use crate::token::{ TokenType, TokenLiteral};
+use crate::stmt::Stmt;
+use crate::token::{TokenType, TokenLiteral};
 use std::sync::Arc;
 use std::any::Any;
 
@@ -10,13 +11,28 @@ impl Interpreter {
         Interpreter
     }
 
-    pub fn interpret(&self, expr: &Expr) -> String {
-    match self.evaluate(expr) {
-        Ok(value) => self.stringify(&value),  
-        Err(err) => err,                     
+    pub fn interpret(&self, statements: &[Stmt]) {
+        for statement in statements {
+            if let Err(err) = self.visit_stmt(statement) {
+                eprintln!("Runtime error: {}", err);
+            }
+        }
     }
-}
 
+    fn visit_stmt(&self, stmt: &Stmt) -> Result<(), String> {
+        match stmt {
+            Stmt::Expression { expression } => {
+                let value = self.evaluate(expression)?;
+                println!("{}", self.stringify(&value)); // Print the result for debugging
+                Ok(())
+            }
+            Stmt::Print { expression } => {
+                let value = self.evaluate(expression)?;
+                println!("{}", self.stringify(&value)); // Actual print statement
+                Ok(())
+            }
+        }
+    }
 
     fn evaluate(&self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
         match expr {
@@ -64,8 +80,16 @@ impl Interpreter {
                         if let (Some(l), Some(r)) = (left.downcast_ref::<String>(), right.downcast_ref::<String>()) {
                             return Ok(Arc::new(format!("{}{}", l, r)));
                         }
+                        // NEW: Allow string + any other type by converting to string
+                        if let Some(l) = left.downcast_ref::<String>() {
+                            return Ok(Arc::new(format!("{}{}", l, self.stringify(&right))));
+                        }
+                        if let Some(r) = right.downcast_ref::<String>() {
+                            return Ok(Arc::new(format!("{}{}", self.stringify(&left), r)));
+                        }
                         Err("Operands must be two numbers or two strings.".to_string())
                     }
+                    
                     TokenType::MINUS => {
                         if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
                             return Ok(Arc::new(l - r));
@@ -95,15 +119,8 @@ impl Interpreter {
                         if let (Some(l), Some(r)) = (left.downcast_ref::<String>(), right.downcast_ref::<String>()) {
                             return Ok(Arc::new(l == r));
                         }
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<bool>(), right.downcast_ref::<bool>()) {
-                            return Ok(Arc::new(l == r));
-                        }
-                        if left.downcast_ref::<()>().is_some() && right.downcast_ref::<()>().is_some() {
-                            return Ok(Arc::new(true)); // Both are `nil`
-                        }
-                        Ok(Arc::new(false)) // Different types are always false
+                        Err("Operands must be two numbers or two strings.".to_string())
                     }
-                    
                     TokenType::BANG_EQUAL => {
                         if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
                             return Ok(Arc::new(l != r));
@@ -111,15 +128,8 @@ impl Interpreter {
                         if let (Some(l), Some(r)) = (left.downcast_ref::<String>(), right.downcast_ref::<String>()) {
                             return Ok(Arc::new(l != r));
                         }
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<bool>(), right.downcast_ref::<bool>()) {
-                            return Ok(Arc::new(l != r));
-                        }
-                        if left.downcast_ref::<()>().is_some() && right.downcast_ref::<()>().is_some() {
-                            return Ok(Arc::new(false)); // Both are `nil`, so they are equal
-                        }
-                        Ok(Arc::new(true)) // Different types are always true
+                        Err("Operands must be two numbers or two strings.".to_string())
                     }
-                    
 
                     TokenType::GREATER => {
                         if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {

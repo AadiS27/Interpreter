@@ -1,6 +1,8 @@
 use crate::token::{Token, TokenType, TokenLiteral};
 use crate::expr::{Expr, Binary, Unary, Literal, Grouping};
 use std::sync::Arc;
+use crate::stmt::Stmt;
+
 #[derive(Debug)]
 pub struct Parser {
     tokens: Vec<Token>,
@@ -233,11 +235,56 @@ impl Parser {
             self.advance();
         }
     }
-    pub fn parse(&mut self) -> Option<Expr> {
-        match self.expression() {
-            Ok(expr) => Some(expr),
-            Err(_) => None,
+    pub fn parse(&mut self) -> Option<Vec<Stmt>> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            if let Some(stmt) = self.statement() {
+                statements.push(stmt);
+            } else {
+                return None; // Return None if any statement fails
+            }
         }
+        Some(statements) // Return Some if parsing succeeds
     }
+    
+
+    fn statement(&mut self) -> Option<Stmt> {
+        if self.match_tokens(&[TokenType::PRINT]) {
+            return Some(self.print_statement());
+        }
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Stmt {
+        self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'print'."); // Require '('
+    
+        let value = match self.expression() {
+            Ok(expr) => expr,
+            Err(_) => {
+                self.synchronize();
+                return Stmt::Print { expression: Expr::Literal(Literal::new(TokenLiteral::Null)) };
+            }
+        };
+    
+        self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression."); // Require ')'
+        self.consume(TokenType::SEMICOLON, "Expect ';' after print statement."); // Require ';'
+    
+        Stmt::Print { expression: value }
+    }
+    
+
+    fn expression_statement(&mut self) -> Option<Stmt> {
+        let expr = match self.expression() {
+            Ok(expr) => expr,
+            Err(err) => {
+                self.synchronize();
+                return None;
+            }
+        };
+        self.consume(TokenType::SEMICOLON, "Expect ';' after expression.");
+        Some(Stmt::Expression { expression: expr })
+    }
+
+    
 }
 

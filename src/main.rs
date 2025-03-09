@@ -4,6 +4,7 @@ mod astprinter;
 mod expr;
 mod interpreter;
 mod parser;
+mod stmt;
 
 use std::fs;
 use std::env;
@@ -24,15 +25,10 @@ fn main() {
     let tokens = tokenizer.tokenize();
     
     let mut parser = parser::Parser::new(tokens);
-    
     match parser.parse() {
-        Some(expression) => {
-            let ast_output = astprinter::AstPrinter::new().print(&expression);
-            println!("AST Output:\n{}", ast_output);
-
+        Some(statements) => {
             let interpreter = Interpreter::new();
-            let result = interpreter.interpret(&expression);
-            println!("{:?}", result);
+            interpreter.interpret(&statements);
         }
         None => eprintln!("Parsing failed due to syntax errors."),
     }
