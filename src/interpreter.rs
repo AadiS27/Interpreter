@@ -84,6 +84,64 @@ impl Interpreter {
                         }
                         Err("Operands must be numbers.".to_string())
                     }
+
+                    TokenType::EQUAL_EQUAL => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l == r));
+                        }
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<String>(), right.downcast_ref::<String>()) {
+                            return Ok(Arc::new(l == r));
+                        }
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<bool>(), right.downcast_ref::<bool>()) {
+                            return Ok(Arc::new(l == r));
+                        }
+                        if left.downcast_ref::<()>().is_some() && right.downcast_ref::<()>().is_some() {
+                            return Ok(Arc::new(true)); // Both are `nil`
+                        }
+                        Ok(Arc::new(false)) // Different types are always false
+                    }
+                    
+                    TokenType::BANG_EQUAL => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l != r));
+                        }
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<String>(), right.downcast_ref::<String>()) {
+                            return Ok(Arc::new(l != r));
+                        }
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<bool>(), right.downcast_ref::<bool>()) {
+                            return Ok(Arc::new(l != r));
+                        }
+                        if left.downcast_ref::<()>().is_some() && right.downcast_ref::<()>().is_some() {
+                            return Ok(Arc::new(false)); // Both are `nil`, so they are equal
+                        }
+                        Ok(Arc::new(true)) // Different types are always true
+                    }
+                    
+
+                    TokenType::GREATER => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l > r));
+                        }
+                        Err("Operands must be numbers.".to_string())
+                    }
+                    TokenType::GREATER_EQUAL => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l >= r));
+                        }
+                        Err("Operands must be numbers.".to_string())
+                    }
+                    TokenType::LESS => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l < r));
+                        }
+                        Err("Operands must be numbers.".to_string())
+                    }
+                    TokenType::LESS_EQUAL => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l <= r));
+                        }
+                        Err("Operands must be numbers.".to_string())
+                    }
                     _ => Err("Unknown binary operator.".to_string()),
                 }
             }
