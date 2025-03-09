@@ -1,5 +1,5 @@
-use crate::expr::{Expr, Binary, Grouping, Literal, Unary};
-use crate::token::{Token, TokenType, TokenLiteral};
+use crate::expr::Expr;
+use crate::token::{ TokenType, TokenLiteral};
 use std::sync::Arc;
 use std::any::Any;
 
@@ -10,10 +10,13 @@ impl Interpreter {
         Interpreter
     }
 
-    pub fn interpret(&self, expr: &Expr) -> Result<String, String> {
-        let value = self.evaluate(expr)?;
-        Ok(self.stringify(&value))
+    pub fn interpret(&self, expr: &Expr) -> String {
+    match self.evaluate(expr) {
+        Ok(value) => self.stringify(&value),  
+        Err(err) => err,                     
     }
+}
+
 
     fn evaluate(&self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
         match expr {

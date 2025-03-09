@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use crate::error;
-#[derive(Debug, Clone)]//	Allows println!("{:?}", obj); for debugging.  Allows obj.clone(); for copying data.
+#[derive(Debug, Clone, PartialEq)]//	Allows println!("{:?}", obj); for debugging.  Allows obj.clone(); for copying data.
 #[allow(dead_code)]//Prevents warnings for unused code.
 pub enum TokenLiteral {
     String(String),
@@ -24,7 +24,7 @@ impl Display for TokenLiteral {
         }
     }
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
    pub token_type: TokenType,
   pub  lexeme: String,

@@ -65,6 +65,10 @@ impl Literal {
             value: Arc::new(value),  // Store TokenLiteral directly
         }
     }
+
+    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
+        self.value.downcast_ref::<T>()
+    }
 }
 
 // Debug implementation for easier printing
