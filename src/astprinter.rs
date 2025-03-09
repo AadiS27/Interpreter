@@ -36,12 +36,27 @@ impl ExprVisitor for AstPrinter {
     }
 
     fn visit_literal(&self, expr: &Literal) -> String {
-        if let Some(value) = expr.value.downcast_ref::<String>() {
-            return value.clone();
+        if let Some(token_literal) = expr.value.downcast_ref::<TokenLiteral>() {
+            match token_literal {
+                TokenLiteral::Number(n) => return n.to_string(),
+                TokenLiteral::String(s) => return format!("\"{}\"", s),
+                TokenLiteral::Identifier(id) => return id.clone(),
+                TokenLiteral::Null => return "nil".to_string(),
+            }
         }
+        
+        if let Some(b) = expr.value.downcast_ref::<bool>() {
+            return b.to_string();
+        }
+        if let Some(n) = expr.value.downcast_ref::<f64>() {
+            return n.to_string();
+        }
+        if let Some(s) = expr.value.downcast_ref::<String>() {
+            return format!("\"{}\"", s);
+        }
+        
         "nil".to_string()
     }
-
     fn visit_unary(&self, expr: &Unary) -> String {
         self.parenthesize(&expr.operator.lexeme, &[&expr.right])
     }
