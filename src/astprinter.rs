@@ -1,6 +1,5 @@
 use crate::expr::{Expr, ExprVisitor, Binary, Grouping, Literal, Unary};
-use crate::token::{Token, TokenType, TokenLiteral};
-use std::sync::Arc;
+use crate::token:: TokenLiteral;
 
 
 pub struct AstPrinter;
@@ -63,30 +62,3 @@ impl ExprVisitor for AstPrinter {
 }
 
 
-fn main() {
-    let expr = Expr::Binary(Binary {
-        left: Box::new(Expr::Unary(Unary {
-            operator: Token {
-                lexeme: "-".to_string(),
-                token_type: TokenType::MINUS,
-                literal: Some(TokenLiteral::Null),
-            },
-            right: Box::new(Expr::Literal(Literal {
-                value: Arc::new("123".to_string()),
-            })),
-        })),
-        operator: Token {
-            lexeme: "*".to_string(),
-            token_type: TokenType::STAR,
-            literal: Some(TokenLiteral::Null),
-        },
-        right: Box::new(Expr::Grouping(Grouping {
-            expression: Box::new(Expr::Literal(Literal {
-                value: Arc::new("45.67".to_string()),
-            })),
-        })),
-    });
-
-    let printer = AstPrinter;
-    println!("{}", printer.print(&expr));
-}
