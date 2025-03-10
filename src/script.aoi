@@ -1,1 +1,4 @@
-write("Hello world");
+
+write (!false);
+
+write(!false);

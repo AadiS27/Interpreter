@@ -33,7 +33,7 @@ pub struct Token {
    
 }
 impl Token {
-    fn new(token_type: TokenType, lexeme: String, literal: TokenLiteral) -> Self {
+   pub fn new(token_type: TokenType, lexeme: String, literal: TokenLiteral) -> Self {
         Self {
             token_type,
             lexeme,
@@ -356,9 +356,9 @@ let float_lexeme = if lexeme.contains('.') {
         ));
         self.tokens.clone()
     }
-    pub fn print_tokens(&self) {
-        for token in &self.tokens {
-            println!("{}", token);
-        }
-    }
+    // pub fn print_tokens(&self) {
+    //     for token in &self.tokens {
+    //         println!("{}", token);
+    //     }
+    // }
 }

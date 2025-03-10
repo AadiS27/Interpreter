@@ -17,6 +17,7 @@ pub enum Expr {
     Grouping(Grouping),
     Literal(Literal),
     Unary(Unary),
+    
 }
 
 pub struct Binary {

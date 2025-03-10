@@ -5,6 +5,7 @@ mod expr;
 mod interpreter;
 mod parser;
 mod stmt;
+mod environment;
 
 use std::fs;
 use std::env;
@@ -25,9 +26,12 @@ fn main() {
     let tokens = tokenizer.tokenize();
     
     let mut parser = parser::Parser::new(tokens);
+
+    
     match parser.parse() {
+        
         Some(statements) => {
-            let interpreter = Interpreter::new();
+            let mut interpreter = Interpreter::new();
             interpreter.interpret(&statements);
         }
         None => eprintln!("Parsing failed due to syntax errors."),
