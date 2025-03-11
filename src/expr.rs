@@ -8,6 +8,7 @@ pub trait ExprVisitor {
     fn visit_grouping(&self, expr: &Grouping) -> String;
     fn visit_literal(&self, expr: &Literal) -> String;
     fn visit_unary(&self, expr: &Unary) -> String;
+
 }
 // pub trait Expr {
 //     fn accept<T>(&self, visitor: & ExprVisitor<T>) -> T;
@@ -17,8 +18,10 @@ pub enum Expr {
     Grouping(Grouping),
     Literal(Literal),
     Unary(Unary),
+
     
 }
+
 
 pub struct Binary {
     pub left: Box< Expr>,
@@ -102,6 +105,7 @@ impl Expr {
             Expr::Grouping(g) => visitor.visit_grouping(g),
             Expr::Literal(l) => visitor.visit_literal(l),
             Expr::Unary(u) => visitor.visit_unary(u),
+         
         }
     }
 }

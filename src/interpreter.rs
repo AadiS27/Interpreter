@@ -23,7 +23,7 @@ impl Interpreter {
         match stmt {
             Stmt::Expression { expression } => {
                 let value = self.evaluate(expression)?;
-                println!("{}", self.stringify(&value)); // Print the result for debugging
+                // println!("{}", self.stringify(&value)); // Print the result for debugging
                 Ok(())
             }
             Stmt::Print { expression } => {
@@ -31,11 +31,13 @@ impl Interpreter {
                 println!("{}", self.stringify(&value)); // Actual print statement
                 Ok(())
             }
+          
         }
     }
 
     fn evaluate(&self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
         match expr {
+
             Expr::Literal(lit) => {
                 if let Some(token_literal) = lit.value.downcast_ref::<TokenLiteral>() {
                     match token_literal {
@@ -45,7 +47,11 @@ impl Interpreter {
                         TokenLiteral::Boolean(b) => Ok(Arc::new(*b)),  
                         TokenLiteral::Null => Ok(Arc::new(())),
                     }
-                } else {
+                } 
+                else if let Some(b) = lit.value.downcast_ref::<bool>() {
+                    Ok(Arc::new(*b))
+                } 
+              else {
                     Err("Unknown literal type.".to_string())
                 }
             }
@@ -161,6 +167,7 @@ impl Interpreter {
                     _ => Err("Unknown binary operator.".to_string()),
                 }
             }
+            
         }
     }
 

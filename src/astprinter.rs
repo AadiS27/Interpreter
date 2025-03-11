@@ -34,6 +34,7 @@ impl ExprVisitor for AstPrinter {
         self.parenthesize("group", &[&expr.expression])
     }
 
+
     fn visit_literal(&self, expr: &Literal) -> String {
         if let Some(token_literal) = expr.value.downcast_ref::<TokenLiteral>() {
             match token_literal {
