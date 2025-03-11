@@ -42,6 +42,7 @@ impl Interpreter {
                         TokenLiteral::Number(n) => Ok(Arc::new(*n)),
                         TokenLiteral::String(s) => Ok(Arc::new(s.clone())),
                         TokenLiteral::Identifier(id) => Ok(Arc::new(id.clone())),
+                        TokenLiteral::Boolean(b) => Ok(Arc::new(*b)),  
                         TokenLiteral::Null => Ok(Arc::new(())),
                     }
                 } else {
@@ -65,6 +66,8 @@ impl Interpreter {
                         }
                         Ok(Arc::new(false))
                     }
+                    TokenType::FALSE => Ok(Arc::new(false)),
+                    TokenType::TRUE => Ok(Arc::new(true)),
                     _ => Err("Unknown unary operator.".to_string()),
                 }
             }

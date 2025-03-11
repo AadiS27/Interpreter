@@ -6,6 +6,7 @@ pub enum TokenLiteral {
     String(String),
     Number(f64),
     Identifier(String),
+    Boolean(bool),
     Null,
 }
 impl Display for TokenLiteral {
@@ -19,6 +20,7 @@ impl Display for TokenLiteral {
                     write!(f, "{}", n) // If decimal, show normally (e.g., 12.34)
                 }
             },
+            TokenLiteral::Boolean(b) => write!(f, "{}", b),
             TokenLiteral::Identifier(s) => write!(f, "{}", s),
             TokenLiteral::Null => write!(f, "null"),
         }

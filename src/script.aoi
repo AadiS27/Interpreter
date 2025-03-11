@@ -1,4 +1,1 @@
-
-write (!false);
-
-write(!false);
+write (!true);

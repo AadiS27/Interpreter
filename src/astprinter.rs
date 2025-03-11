@@ -39,6 +39,7 @@ impl ExprVisitor for AstPrinter {
             match token_literal {
                 TokenLiteral::Number(n) => return n.to_string(),
                 TokenLiteral::String(s) => return format!("\"{}\"", s),
+                TokenLiteral::Boolean(b) => return b.to_string(),
                 TokenLiteral::Identifier(id) => return id.clone(),
                 TokenLiteral::Null => return "nil".to_string(),
             }
