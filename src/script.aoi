@@ -1,1 +1,2 @@
-write(!false);
+VAR x=5;
+write(x);
