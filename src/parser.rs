@@ -2,6 +2,7 @@ use crate::token::{Token, TokenType, TokenLiteral};
 use crate::expr::{Expr, Binary, Unary, Literal, Grouping};
 use std::sync::Arc;
 use crate::stmt::Stmt;
+use crate::expr::Variable;
 
 #[derive(Debug)]
 pub struct Parser {
@@ -122,45 +123,56 @@ impl Parser {
         }
        
 
-        self.primary()
+        match self.primary() {
+            Ok(expr) => expr,
+            Err(err) => {
+                // Handle the error appropriately, for example by returning a default expression
+                return Expr::Literal(Literal::new(TokenLiteral::Null));
+            },
+        }
     }
 
-    fn primary(&mut self) -> Expr {
+    fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_tokens(&[TokenType::FALSE]) {
-            return Expr::Literal(Literal {
+            return Ok(Expr::Literal(Literal {
                 value: Arc::new(false),
-            });
+            }));
         }
         if self.match_tokens(&[TokenType::TRUE]) {
-            return Expr::Literal(Literal {
+            return Ok(Expr::Literal(Literal {
                 value: Arc::new(true),
-            });
+            }));
         }
         if self.match_tokens(&[TokenType::NIL]) {
-            return Expr::Literal(Literal {
-                value: Arc::new(( )), // Using () as Rust's equivalent of `nil`
-            });
+            return Ok(Expr::Literal(Literal {
+                value: Arc::new(()), // Using () as Rust's equivalent of `nil`
+            }));
         }
         if self.match_tokens(&[TokenType::NUMBER, TokenType::STRING]) {
             if let Some(value) = self.previous().literal.clone() {
-                return Expr::Literal(Literal::new(value));
+                return Ok(Expr::Literal(Literal::new(value)));
             }
             // Handle the case where the token has no literal value
-            return Expr::Literal(Literal::new(TokenLiteral::Null));
+            return Ok(Expr::Literal(Literal::new(TokenLiteral::Null)));
         }
-        
-        
-        
     
+        // ✅ NEW: Handle identifiers (variable names)
+        if self.match_tokens(&[TokenType::IDENTIFIER]) {
+            return Ok(Expr::Variable(Variable {
+                name: self.previous().clone(),
+            }));
+        }
+    
+        // ✅ Fix: Return error instead of panicking
         if self.match_tokens(&[TokenType::LEFT_PAREN]) {
-            let expr = self.expression().unwrap();
+            let expr = self.expression()?;
             self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
-            return Expr::Grouping(Grouping {
+            return Ok(Expr::Grouping(Grouping {
                 expression: Box::new(expr),
-            });
+            }));
         }
     
-        panic!("{}", self.error(self.peek(), "Expect expression."));
+        Err(ParseError::new(&format!("Error at '{}': Expect expression.", self.peek().lexeme)))
     }
     
  
@@ -299,16 +311,19 @@ impl Parser {
         let name = name_token.lexeme.clone();
     
         let initializer = if self.match_tokens(&[TokenType::EQUAL]) {
-            self.expression().ok()
+            match self.expression() {
+                Ok(expr) => Some(expr),
+                Err(_) => None,
+            } // Ensure expression exists
         } else {
             None
         };
     
-        // Ensure a semicolon at the end
         self.consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
     
         Stmt::Var { name, initializer }
     }
+    
     
     
 }

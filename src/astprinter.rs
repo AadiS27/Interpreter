@@ -1,4 +1,4 @@
-use crate::expr::{Expr, ExprVisitor, Binary, Grouping, Literal, Unary};
+use crate::expr::{Expr, ExprVisitor, Binary, Grouping, Literal, Unary, Variable};
 use crate::token:: TokenLiteral;
 
 
@@ -60,6 +60,9 @@ impl ExprVisitor for AstPrinter {
     }
     fn visit_unary(&self, expr: &Unary) -> String {
         self.parenthesize(&expr.operator.lexeme, &[&expr.right])
+    }
+    fn visit_variable(&self, expr: &Variable) -> String {
+        expr.name.lexeme.clone()
     }
 }
 

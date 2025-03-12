@@ -8,6 +8,7 @@ pub trait ExprVisitor {
     fn visit_grouping(&self, expr: &Grouping) -> String;
     fn visit_literal(&self, expr: &Literal) -> String;
     fn visit_unary(&self, expr: &Unary) -> String;
+     fn visit_variable(&self, expr: &Variable) -> String;
 
 }
 // pub trait Expr {
@@ -18,9 +19,11 @@ pub enum Expr {
     Grouping(Grouping),
     Literal(Literal),
     Unary(Unary),
-    
-    
+    Variable(Variable),
+    Assign(String, Box<Expr>), // Represents variable assignment
 }
+    
+
 
 
 pub struct Binary {
@@ -82,6 +85,21 @@ impl Debug for Literal {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Variable {
+    pub name: Token,
+}
+
+impl Variable {
+    pub fn new(name: Token) -> Self {
+        Variable {
+            name: name,
+        }
+    }
+}
+
+
+
 
 
 pub struct Unary {
@@ -105,7 +123,8 @@ impl Expr {
             Expr::Grouping(g) => visitor.visit_grouping(g),
             Expr::Literal(l) => visitor.visit_literal(l),
             Expr::Unary(u) => visitor.visit_unary(u),
-         
+            Expr::Variable(v) => visitor.visit_variable(v),
+            Expr::Assign(name, expr) => format!("Assign({}, ...)", name),
         }
     }
 }

@@ -1,17 +1,21 @@
 use crate::expr::Expr;
 use crate::stmt::Stmt;
-use crate::token::{TokenType, TokenLiteral};
+use crate::token::{Token, TokenType, TokenLiteral};
 use std::sync::Arc;
+
 use std::any::Any;
-
-pub struct Interpreter;
-
+use crate::environment::{self, Environment};
+pub struct Interpreter {
+    environment: Environment,
+}
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter
+        Interpreter {
+            environment: environment::Environment::new(),
+        }
     }
 
-    pub fn interpret(&self, statements: &[Stmt]) {
+    pub fn interpret(&mut self, statements: &[Stmt]) {
         for statement in statements {
             if let Err(err) = self.visit_stmt(statement) {
                 eprintln!("Runtime error: {}", err);
@@ -19,17 +23,26 @@ impl Interpreter {
         }
     }
 
-    fn visit_stmt(&self, stmt: &Stmt) -> Result<(), String> {
+    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
             Stmt::Var { name, initializer } => {
-                let value = if let Some(expr) = initializer {
-                    self.evaluate(expr)?
+                let value = if let Some(init) = initializer {
+                    self.evaluate(init)?
                 } else {
                     Arc::new(())
                 };
-                // println!("{} = {}", name, self.stringify(&value)); // Print the result for debugging
+                let cloned_value = if let Some(v) = value.downcast_ref::<f64>() {
+                    Box::new(*v) as Box<dyn Any + Send + Sync>
+                } else if let Some(v) = value.downcast_ref::<String>() {
+                    Box::new(v.clone()) as Box<dyn Any + Send + Sync>
+                } else if let Some(v) = value.downcast_ref::<bool>() {
+                    Box::new(*v) as Box<dyn Any + Send + Sync>
+                } else {
+                    Box::new(()) as Box<dyn Any + Send + Sync>
+                };
+                self.environment.define(name.clone(), cloned_value);
                 Ok(())
-            }
+            },
             Stmt::Expression { expression } => {
                 let value = self.evaluate(expression)?;
                 // println!("{}", self.stringify(&value)); // Print the result for debugging
@@ -44,9 +57,37 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
         match expr {
-
+          
+            Expr::Variable(name) => {
+                let token = Token::new(TokenType::IDENTIFIER, name.name.lexeme.clone(), TokenLiteral::Identifier(name.name.lexeme.clone()));
+                let value = self.environment.get(&token).map_err(|e| e.to_string())?;
+              
+                if let Some(v) = value.downcast_ref::<f64>() {
+                    Ok(Arc::new(*v))
+                } else if let Some(v) = value.downcast_ref::<String>() {
+                    Ok(Arc::new(v.clone()))
+                } else if let Some(v) = value.downcast_ref::<bool>() {
+                    Ok(Arc::new(*v))
+                } else {
+                    Err("Unsupported type.".to_string())
+                }
+            }
+            Expr::Assign(name, value_expr) => {
+                let value = self.evaluate(value_expr)?;
+                let cloned_value = if let Some(v) = value.downcast_ref::<f64>() {
+                    Box::new(*v) as Box<dyn Any + Send + Sync>
+                } else if let Some(v) = value.downcast_ref::<String>() {
+                    Box::new(v.clone()) as Box<dyn Any + Send + Sync>
+                } else if let Some(v) = value.downcast_ref::<bool>() {
+                    Box::new(*v) as Box<dyn Any + Send + Sync>
+                } else {
+                    Box::new(()) as Box<dyn Any + Send + Sync>
+                };
+                self.environment.assign(&Token::new(TokenType::IDENTIFIER, name.clone(), TokenLiteral::Identifier(name.clone())), cloned_value).map_err(|e| e.to_string())?;
+                Ok(value)
+            }
             Expr::Literal(lit) => {
                 if let Some(token_literal) = lit.value.downcast_ref::<TokenLiteral>() {
                     match token_literal {
