@@ -1,2 +1,2 @@
-VAR x=5;
+var x=5;
 write(x);

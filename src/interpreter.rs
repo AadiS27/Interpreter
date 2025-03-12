@@ -21,6 +21,15 @@ impl Interpreter {
 
     fn visit_stmt(&self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
+            Stmt::Var { name, initializer } => {
+                let value = if let Some(expr) = initializer {
+                    self.evaluate(expr)?
+                } else {
+                    Arc::new(())
+                };
+                // println!("{} = {}", name, self.stringify(&value)); // Print the result for debugging
+                Ok(())
+            }
             Stmt::Expression { expression } => {
                 let value = self.evaluate(expression)?;
                 // println!("{}", self.stringify(&value)); // Print the result for debugging

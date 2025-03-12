@@ -39,6 +39,7 @@ impl Parser {
         Ok(self.equality())
     }
 
+
     fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();
 
@@ -252,11 +253,15 @@ impl Parser {
     
 
     fn statement(&mut self) -> Option<Stmt> {
+        if self.match_tokens(&[TokenType::VAR]) {  // Check for variable declaration
+            return Some(self.variable_declaration());
+        }
         if self.match_tokens(&[TokenType::PRINT]) {
             return Some(self.print_statement());
         }
         self.expression_statement()
     }
+    
 
     fn print_statement(&mut self) -> Stmt {
         self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'print'."); // Require '('
@@ -288,6 +293,23 @@ impl Parser {
         Some(Stmt::Expression { expression: expr })
     }
 
+    
+    fn variable_declaration(&mut self) -> Stmt {
+        let name_token = self.consume(TokenType::IDENTIFIER, "Expect variable name.");
+        let name = name_token.lexeme.clone();
+    
+        let initializer = if self.match_tokens(&[TokenType::EQUAL]) {
+            self.expression().ok()
+        } else {
+            None
+        };
+    
+        // Ensure a semicolon at the end
+        self.consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
+    
+        Stmt::Var { name, initializer }
+    }
+    
     
 }
 
