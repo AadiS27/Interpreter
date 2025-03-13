@@ -37,9 +37,25 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        Ok(self.equality())
+        self.assignment() // Instead of self.equality()
     }
-
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.equality(); // Parse left-hand side first
+    
+        if self.match_tokens(&[TokenType::EQUAL]) {
+            let equals = self.previous().clone(); 
+            let value = self.assignment()?; // Right-associative!
+    
+            if let Expr::Variable(var) = expr { // Ensure LHS is a variable
+                return Ok(Expr::Assign(var.name.lexeme.clone(), Box::new(value)));
+            } 
+    
+            return Err(ParseError::new("Invalid assignment target."));
+        }
+    
+        Ok(expr)
+    }
+    
 
     fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();

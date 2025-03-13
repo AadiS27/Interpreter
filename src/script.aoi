@@ -3,3 +3,4 @@ var a;
 var b = 2;
 
 write(a);
+write(b);
