@@ -5,6 +5,7 @@ use crate::error::RuntimeError;
 use crate::token::TokenLiteral; // Add this line to import TokenLiteral
 
 #[derive(Default)]
+
 pub struct Environment {
     values: HashMap<String, Box<dyn std::any::Any>>,
     enclosing: Option<Box<Environment>>, // For nested scopes
@@ -12,10 +13,10 @@ pub struct Environment {
 
 impl Environment {
     /// Creates a new, empty environment (global scope).
-    pub fn new() -> Self {
+    pub fn new(enclosing: Option<Box<Environment>>) -> Self {
         Environment {
             values: HashMap::new(),
-            enclosing: None,
+            enclosing,
         }
     }
 

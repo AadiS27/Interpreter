@@ -11,7 +11,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
-            environment: environment::Environment::new(),
+            environment: environment::Environment::new(None),
         }
     }
 
@@ -22,9 +22,28 @@ impl Interpreter {
             }
         }
     }
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), String> {
+        self.visit_stmt(stmt)
+    }
 
+    fn execute_block(&mut self, statements: &[Stmt], new_env: Environment) -> Result<(), String> {
+    let previous = std::mem::replace(&mut self.environment, new_env); // Swap environments
+
+    let result = statements.iter().try_for_each(|stmt| self.execute(stmt)); // Execute block
+
+    self.environment = previous; // Restore old environment after execution
+    result
+}
+
+    
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
+            Stmt::Block(statements) => {
+                let enclosing = self.environment.as_ref().map(|env| env.clone()).unwrap_or_else(Environment::new);
+                self.execute_block(statements, Environment::with_enclosing(enclosing))
+            }
+            
+            
             Stmt::Var { name, initializer } => {
                 let value = if let Some(init) = initializer {
                     self.evaluate(init)?

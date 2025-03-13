@@ -281,15 +281,17 @@ impl Parser {
     
 
     fn statement(&mut self) -> Option<Stmt> {
-        if self.match_tokens(&[TokenType::VAR]) {  // Check for variable declaration
+        if self.match_tokens(&[TokenType::VAR]) {  
             return Some(self.variable_declaration());
         }
         if self.match_tokens(&[TokenType::PRINT]) {
             return Some(self.print_statement());
         }
+        if self.match_tokens(&[TokenType::LEFT_BRACE]) { 
+            return Some(Stmt::Block(self.block())); // ✅ NEW: Handle block statements
+        }
         self.expression_statement()
     }
-    
 
     fn print_statement(&mut self) -> Stmt {
         self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'print'."); // Require '('
@@ -340,7 +342,18 @@ impl Parser {
         Stmt::Var { name, initializer }
     }
     
+    fn block(&mut self) -> Vec<Stmt> {
+        let mut statements = Vec::new();
     
+        while !self.check(TokenType::RIGHT_BRACE) && !self.is_at_end() {
+            if let Some(stmt) = self.statement() {
+                statements.push(stmt);
+            }
+        }
+    
+        self.consume(TokenType::RIGHT_BRACE, "Expect '}' after block.");
+        statements
+    }
     
 }
 
