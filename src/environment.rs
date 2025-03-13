@@ -29,8 +29,16 @@ impl Environment {
 
     /// ✅ Defines a new variable or updates an existing one in the current scope.
     pub fn define(&mut self, name: String, value: Box<dyn Any>) {
-        self.values.insert(name, value); // ✅ Overwrites the value if it already exists
+        // ✅ Ensure uninitialized variables store `nil`
+        let stored_value: Box<dyn Any> = if value.downcast_ref::<TokenLiteral>() == Some(&TokenLiteral::Null) {
+            Box::new(TokenLiteral::Null)
+        } else {
+            value
+        };
+    
+        self.values.insert(name, stored_value);
     }
+    
     
 
     /// ✅ Retrieves the value of a variable.

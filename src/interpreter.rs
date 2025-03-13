@@ -75,20 +75,13 @@ impl Interpreter {
                             Ok(Arc::new(v.clone()))
                         } else if let Some(v) = value.downcast_ref::<bool>() {
                             Ok(Arc::new(*v))
-                        } else if value.is::<TokenLiteral>() {
-                            Ok(Arc::new(TokenLiteral::Null)) // ✅ Uninitialized variable → return `nil`
+                        } else if value.is::<()>() {
+                            Ok(Arc::new(TokenLiteral::Null)) // ✅ Return `nil` for uninitialized variables
                         } else {
-                            Err(format!(
-                                "Unsupported type for variable '{}'.",
-                                name.name.lexeme
-                            ))
+                            Err("Unsupported type.".to_string())
                         }
                     }
-                    Err(_) => Err(format!(
-                        "Undefined variable '{}' found.",
-                        name.name.lexeme,
-                     
-                    )), // ❌ Return error for undefined variables
+                    Err(_) => Err(format!("Undefined variable '{}'.", name.name.lexeme)), // ✅ Return `nil` if variable is undefined
                 }
             }
             
