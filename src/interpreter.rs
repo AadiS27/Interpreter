@@ -61,19 +61,30 @@ impl Interpreter {
         match expr {
           
             Expr::Variable(name) => {
-                let token = Token::new(TokenType::IDENTIFIER, name.name.lexeme.clone(), TokenLiteral::Identifier(name.name.lexeme.clone()));
-                let value = self.environment.get(&token).map_err(|e| e.to_string())?;
-              
-                if let Some(v) = value.downcast_ref::<f64>() {
-                    Ok(Arc::new(*v))
-                } else if let Some(v) = value.downcast_ref::<String>() {
-                    Ok(Arc::new(v.clone()))
-                } else if let Some(v) = value.downcast_ref::<bool>() {
-                    Ok(Arc::new(*v))
-                } else {
-                    Err("Unsupported type.".to_string())
+                let token = Token::new(
+                    TokenType::IDENTIFIER, 
+                    name.name.lexeme.clone(), 
+                    TokenLiteral::Identifier(name.name.lexeme.clone())
+                );
+            
+                match self.environment.get(&token) {
+                    Ok(value) => {
+                        if let Some(v) = value.downcast_ref::<f64>() {
+                            Ok(Arc::new(*v))
+                        } else if let Some(v) = value.downcast_ref::<String>() {
+                            Ok(Arc::new(v.clone()))
+                        } else if let Some(v) = value.downcast_ref::<bool>() {
+                            Ok(Arc::new(*v))
+                        } else if value.is::<()>() {
+                            Ok(Arc::new(TokenLiteral::Null)) // ✅ Return `nil` for uninitialized variables
+                        } else {
+                            Err("Unsupported type.".to_string())
+                        }
+                    }
+                    Err(_) => Ok(Arc::new(TokenLiteral::Null)), // ✅ Return `nil` if variable is undefined
                 }
             }
+            
             Expr::Assign(name, value_expr) => {
                 let value = self.evaluate(value_expr)?;
                 let cloned_value = if let Some(v) = value.downcast_ref::<f64>() {

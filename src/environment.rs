@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use crate::token::Token;
+use std::any::Any;
 use crate::error::RuntimeError;
+use crate::token::TokenLiteral; // Add this line to import TokenLiteral
 
 #[derive(Default)]
 pub struct Environment {
@@ -26,26 +28,46 @@ impl Environment {
     }
 
     /// ✅ Defines a new variable or updates an existing one in the current scope.
-    pub fn define(&mut self, name: String, value: Box<dyn std::any::Any>) {
-        self.values.insert(name, value);
+    pub fn define(&mut self, name: String, value: Box<dyn Any>) {
+        self.values.insert(name, value); // ✅ Overwrites the value if it already exists
     }
+    
 
     /// ✅ Retrieves the value of a variable.
-    pub fn get(&self, name: &Token) -> Result<&Box<dyn std::any::Any>, RuntimeError> {
+    pub fn get(&self, name: &Token) -> Result<Box<dyn Any>, RuntimeError> {
         if let Some(value) = self.values.get(&name.lexeme) {
-            return Ok(value);
+            // ✅ If variable exists but contains `None`, return `nil`
+            if value.downcast_ref::<()>().is_some() {
+                return Ok(Box::new(())); // Representing nil with an empty tuple
+            }
+
+            // ✅ Clone the inner value and return a new `Box`
+            if let Some(v) = value.downcast_ref::<f64>() {
+                return Ok(Box::new(*v));
+            } else if let Some(v) = value.downcast_ref::<String>() {
+                return Ok(Box::new(v.clone()));
+            } else if let Some(v) = value.downcast_ref::<bool>() {
+                return Ok(Box::new(*v));
+            }
+
+            return Err(RuntimeError::new(
+                name,
+                format!("Unsupported type for '{}'.", name.lexeme),
+            ));
         }
-        // If not found in the current scope, check the enclosing scope
+
+        // 🔍 Check enclosing scope (nested environments)
         if let Some(enclosing) = &self.enclosing {
             return enclosing.get(name);
         }
 
+        // ❌ If not found, return an "Undefined variable" error
         Err(RuntimeError::new(
             name,
             format!("Undefined variable '{}'.", name.lexeme),
         ))
     }
-
+    
     /// ✅ Assigns a new value to an existing variable.
     pub fn assign(&mut self, name: &Token, value: Box<dyn std::any::Any>) -> Result<(), RuntimeError> {
         if self.values.contains_key(&name.lexeme) {

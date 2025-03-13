@@ -1,2 +1,5 @@
-var x=12;
-write(x);
+var a=2;
+
+var a;
+
+write(a);
