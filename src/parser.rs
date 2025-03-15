@@ -291,7 +291,7 @@ impl Parser {
             return Some(Stmt::Block(self.block())); // ✅ NEW: Handle block statements
         }
         if self.match_tokens(&[TokenType::IF]) {
-            return Some(self.If_statement());
+            return Some(self.if_statement());
         }
         self.expression_statement()
     }
@@ -358,7 +358,7 @@ impl Parser {
         statements
     }
     
-    fn If_statement(&mut self) -> Stmt {
+    fn if_statement(&mut self) -> Stmt {
         self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
         let condition = self.expression().unwrap();
         self.consume(TokenType::RIGHT_PAREN, "Expect ')' after if condition.");

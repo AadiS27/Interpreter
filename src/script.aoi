@@ -1,7 +1,9 @@
-var x=5;
-if(x>5)
-{
-    write("hello");
-}else{
-    write("world");
-}
+var stage = "unknown";
+var age = 50;
+if (age < 18) {   stage = "child"; }
+else {  stage = "adult"; }
+write (stage);
+
+var isAdult = age >= 18;
+if (isAdult) { write ("eligible for voting: true"); }
+if (!isAdult) { write ("eligible for voting: false"); }
