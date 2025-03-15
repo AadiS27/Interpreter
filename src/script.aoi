@@ -1,8 +1,6 @@
+var baz = (91 * 16) - 61;
 {
-    var foo;
-   write(foo);
+    var world = "quz" + "89";
+   write(world);
 }
-{
-    var foo = "after";
-   write(foo);
-}
+write(baz);
