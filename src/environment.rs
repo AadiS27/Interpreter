@@ -5,12 +5,35 @@ use crate::error::RuntimeError;
 use crate::token::TokenLiteral; // Add this line to import TokenLiteral
 
 #[derive(Default)]
-
 pub struct Environment {
     values: HashMap<String, Box<dyn std::any::Any>>,
     enclosing: Option<Box<Environment>>, // For nested scopes
 }
 
+
+impl Clone for Environment {
+    fn clone(&self) -> Self {
+        let mut cloned_values = HashMap::new();
+        for (key, value) in &self.values {
+            let cloned_value = if let Some(v) = value.downcast_ref::<f64>() {
+                Box::new(*v) as Box<dyn Any>
+            } else if let Some(v) = value.downcast_ref::<String>() {
+                Box::new(v.clone()) as Box<dyn Any>
+            } else if let Some(v) = value.downcast_ref::<bool>() {
+                Box::new(*v) as Box<dyn Any>
+            } else if let Some(v) = value.downcast_ref::<TokenLiteral>() {
+                Box::new(v.clone()) as Box<dyn Any>
+            } else {
+                panic!("Unsupported type in environment values");
+            };
+            cloned_values.insert(key.clone(), cloned_value);
+        }
+        Environment {
+            values: cloned_values,
+            enclosing: self.enclosing.clone(),
+        }
+    }
+}
 impl Environment {
     /// Creates a new, empty environment (global scope).
     pub fn new(enclosing: Option<Box<Environment>>) -> Self {

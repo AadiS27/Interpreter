@@ -39,7 +39,7 @@ impl Interpreter {
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
             Stmt::Block(statements) => {
-                let enclosing = self.environment.as_ref().map(|env| env.clone()).unwrap_or_else(Environment::new);
+                let enclosing = self.environment.clone();
                 self.execute_block(statements, Environment::with_enclosing(enclosing))
             }
             

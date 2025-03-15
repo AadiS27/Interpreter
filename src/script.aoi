@@ -1,6 +1,8 @@
-var quz;
-var hello;
-
-quz = hello = 16 + 34 * 92;
-write (quz);
-write (hello);
+{
+    var foo;
+   write(foo);
+}
+{
+    var foo = "after";
+   write(foo);
+}
