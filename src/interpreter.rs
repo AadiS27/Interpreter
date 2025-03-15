@@ -43,6 +43,20 @@ impl Interpreter {
                 self.execute_block(statements, Environment::with_enclosing(enclosing))
             }
             
+            Stmt::If { condition, then_branch, else_branch } => {
+                let condition = self.evaluate(condition)?;
+                if let Some(b) = condition.downcast_ref::<bool>() {
+                    if *b {
+                        self.execute(then_branch)
+                    } else if let Some(else_branch) = else_branch {
+                        self.execute(else_branch)
+                    } else {
+                        Ok(())
+                    }
+                } else {
+                    Err("Condition must be a boolean.".to_string())
+                }
+            }
             
             Stmt::Var { name, initializer } => {
                 let value = if let Some(init) = initializer {
@@ -79,6 +93,21 @@ impl Interpreter {
     fn evaluate(&mut self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
         match expr {
           
+            
+            Expr::If { condition, then_branch, else_branch } => {
+                let condition = self.evaluate(condition)?;
+                if let Some(b) = condition.downcast_ref::<bool>() {
+                    if *b {
+                        self.evaluate(then_branch)
+                    } else if let Some(else_branch) = else_branch {
+                        self.evaluate(else_branch)
+                    } else {
+                        Ok(Arc::new(()))
+                    }
+                } else {
+                    Err("Condition must be a boolean.".to_string())
+                }
+            }
             Expr::Variable(name) => {
                 let token = Token::new(
                     TokenType::IDENTIFIER, 

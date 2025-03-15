@@ -51,9 +51,9 @@ impl Environment {
         }
     }
 
-    /// ✅ Defines a new variable or updates an existing one in the current scope.
+    ///  Defines a new variable or updates an existing one in the current scope.
     pub fn define(&mut self, name: String, value: Box<dyn Any>) {
-        // ✅ Ensure uninitialized variables store `nil`
+        //  Ensure uninitialized variables store `nil`
         let stored_value: Box<dyn Any> = if value.downcast_ref::<TokenLiteral>() == Some(&TokenLiteral::Null) {
             Box::new(TokenLiteral::Null)
         } else {
@@ -65,15 +65,15 @@ impl Environment {
     
     
 
-    /// ✅ Retrieves the value of a variable.
+    ///  Retrieves the value of a variable.
     pub fn get(&self, name: &Token) -> Result<Box<dyn Any>, RuntimeError> {
         if let Some(value) = self.values.get(&name.lexeme) {
-            // ✅ If variable exists but contains `None`, return `nil`
+            //  If variable exists but contains `None`, return `nil`
             if value.downcast_ref::<()>().is_some() {
                 return Ok(Box::new(())); // Representing nil with an empty tuple
             }
 
-            // ✅ Clone the inner value and return a new `Box`
+            //  Clone the inner value and return a new `Box`
             if let Some(v) = value.downcast_ref::<f64>() {
                 return Ok(Box::new(*v));
             } else if let Some(v) = value.downcast_ref::<String>() {
@@ -88,19 +88,19 @@ impl Environment {
             ));
         }
 
-        // 🔍 Check enclosing scope (nested environments)
+        //  Check enclosing scope (nested environments)
         if let Some(enclosing) = &self.enclosing {
             return enclosing.get(name);
         }
 
-        // ❌ If not found, return an "Undefined variable" error
+        //  If not found, return an "Undefined variable" error
         Err(RuntimeError::new(
             name,
             format!("Undefined variable '{}'.", name.lexeme),
         ))
     }
     
-    /// ✅ Assigns a new value to an existing variable.
+    ///  Assigns a new value to an existing variable.
     pub fn assign(&mut self, name: &Token, value: Box<dyn std::any::Any>) -> Result<(), RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
             self.values.insert(name.lexeme.clone(), value);

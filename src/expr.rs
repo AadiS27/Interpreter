@@ -21,8 +21,12 @@ pub enum Expr {
     Unary(Unary),
     Variable(Variable),
     Assign(String, Box<Expr>), // Represents variable assignment
+    If { condition: Box<Expr>, then_branch: Box<Expr>, else_branch: Option<Box<Expr>> },
 }
     
+
+
+
 
 
 
@@ -73,9 +77,7 @@ impl Literal {
         }
     }
 
-    pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
-        self.value.downcast_ref::<T>()
-    }
+   
 }
 
 // Debug implementation for easier printing
@@ -125,6 +127,9 @@ impl Expr {
             Expr::Unary(u) => visitor.visit_unary(u),
             Expr::Variable(v) => visitor.visit_variable(v),
             Expr::Assign(name, expr) => format!("Assign({}, ...)", name),
+            Expr::If { condition, then_branch, else_branch } => {
+                format!("If {{ {}, {}, {} }}", condition.accept(visitor), then_branch.accept(visitor), else_branch.as_ref().map_or("None".to_string(), |e| e.accept(visitor)))
+            }
         }
     }
 }

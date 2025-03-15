@@ -290,6 +290,9 @@ impl Parser {
         if self.match_tokens(&[TokenType::LEFT_BRACE]) { 
             return Some(Stmt::Block(self.block())); // ✅ NEW: Handle block statements
         }
+        if self.match_tokens(&[TokenType::IF]) {
+            return Some(self.If_statement());
+        }
         self.expression_statement()
     }
 
@@ -355,5 +358,23 @@ impl Parser {
         statements
     }
     
+    fn If_statement(&mut self) -> Stmt {
+        self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
+        let condition = self.expression().unwrap();
+        self.consume(TokenType::RIGHT_PAREN, "Expect ')' after if condition.");
+    
+        let then_branch = Box::new(self.statement().unwrap());
+        let else_branch = if self.match_tokens(&[TokenType::ELSE]) {
+            Some(Box::new(self.statement().unwrap()))
+        } else {
+            None
+        };
+    
+        Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        }
+    }
 }
 
