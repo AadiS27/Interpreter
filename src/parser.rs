@@ -335,7 +335,7 @@ impl Parser {
             match self.expression() {
                 Ok(expr) => Some(expr),
                 Err(_) => None,
-            } // Ensure expression exists
+            }
         } else {
             None
         };
@@ -344,6 +344,7 @@ impl Parser {
     
         Stmt::Var { name, initializer }
     }
+    
     
     fn block(&mut self) -> Vec<Stmt> {
         let mut statements = Vec::new();

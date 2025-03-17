@@ -68,67 +68,67 @@ impl Environment {
     ///  Retrieves the value of a variable.
     pub fn get(&self, name: &Token) -> Result<Box<dyn Any>, RuntimeError> {
         if let Some(value) = self.values.get(&name.lexeme) {
-            // If variable exists but contains `None`, return `nil`
-            if value.downcast_ref::<()>().is_some() {
-                return Ok(Box::new(())); // Representing nil with an empty tuple
-            }
+            println!("DEBUG: Retrieving variable '{}' -> {:?}", name.lexeme, value);
     
-            // Clone the inner value and return a new `Box`
-            if let Some(v) = value.downcast_ref::<f64>() {
-                return Ok(Box::new(*v));
-            } else if let Some(v) = value.downcast_ref::<String>() {
+            // Ensure downcasting works correctly
+            if let Some(v) = value.downcast_ref::<String>() {
                 return Ok(Box::new(v.clone()));
+            } else if let Some(v) = value.downcast_ref::<f64>() {
+                return Ok(Box::new(*v));
             } else if let Some(v) = value.downcast_ref::<bool>() {
                 return Ok(Box::new(*v));
-            } else if let Some(v) = value.downcast_ref::<Vec<Box<dyn Any>>>() {
-                let cloned_vec: Vec<Box<dyn Any>> = v.iter().map(|item| {
-                    if let Some(v) = item.downcast_ref::<f64>() {
-                        Box::new(*v) as Box<dyn Any>
-                    } else if let Some(v) = item.downcast_ref::<String>() {
-                        Box::new(v.clone()) as Box<dyn Any>
-                    } else if let Some(v) = item.downcast_ref::<bool>() {
-                        Box::new(*v) as Box<dyn Any>
-                    } else if let Some(v) = item.downcast_ref::<TokenLiteral>() {
-                        Box::new(v.clone()) as Box<dyn Any>
-                    } else {
-                        panic!("Unsupported type in vector");
-                    }
-                }).collect();
-                return Ok(Box::new(cloned_vec)); // Handle arrays
+            } else {
+                println!("DEBUG: Unknown type stored for '{}'", name.lexeme);
+                return Err(RuntimeError::new(
+                    name,
+                    format!("Unsupported type for '{}'.", name.lexeme),
+                ));
             }
-    
-            return Err(RuntimeError::new(
-                name,
-                format!("Unsupported type for '{}'.", name.lexeme),
-            ));
         }
     
-        // Check enclosing scope (nested environments)
+        // Check enclosing scope if not found
         if let Some(enclosing) = &self.enclosing {
             return enclosing.get(name);
         }
     
-        // If not found, return an "Undefined variable" error
         Err(RuntimeError::new(
             name,
             format!("Undefined variable '{}'.", name.lexeme),
         ))
     }
     
+    
+    
     ///  Assigns a new value to an existing variable.
-    pub fn assign(&mut self, name: &Token, value: Box<dyn std::any::Any>) -> Result<(), RuntimeError> {
+    pub fn assign(&mut self, name: &Token, value: Box<dyn Any>) -> Result<(), RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
-            self.values.insert(name.lexeme.clone(), value);
+            println!("DEBUG: Assigning '{}' -> {:?}", name.lexeme, value);
+    
+            // Convert value to a proper type before inserting
+            let stored_value: Box<dyn Any> = if let Some(v) = value.downcast_ref::<f64>() {
+                Box::new(*v)
+            } else if let Some(v) = value.downcast_ref::<String>() {
+                Box::new(v.clone())
+            } else if let Some(v) = value.downcast_ref::<bool>() {
+                Box::new(*v)
+            } else {
+                value
+            };
+    
+            self.values.insert(name.lexeme.clone(), stored_value);
             return Ok(());
         }
+    
         // If not found in the current scope, try the enclosing scope
         if let Some(enclosing) = &mut self.enclosing {
             return enclosing.assign(name, value);
         }
-
+    
         Err(RuntimeError::new(
             name,
             format!("Undefined variable '{}'.", name.lexeme),
         ))
     }
+    
+    
 }
