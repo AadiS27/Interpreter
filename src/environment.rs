@@ -68,32 +68,47 @@ impl Environment {
     ///  Retrieves the value of a variable.
     pub fn get(&self, name: &Token) -> Result<Box<dyn Any>, RuntimeError> {
         if let Some(value) = self.values.get(&name.lexeme) {
-            //  If variable exists but contains `None`, return `nil`
+            // If variable exists but contains `None`, return `nil`
             if value.downcast_ref::<()>().is_some() {
                 return Ok(Box::new(())); // Representing nil with an empty tuple
             }
-
-            //  Clone the inner value and return a new `Box`
+    
+            // Clone the inner value and return a new `Box`
             if let Some(v) = value.downcast_ref::<f64>() {
                 return Ok(Box::new(*v));
             } else if let Some(v) = value.downcast_ref::<String>() {
                 return Ok(Box::new(v.clone()));
             } else if let Some(v) = value.downcast_ref::<bool>() {
                 return Ok(Box::new(*v));
+            } else if let Some(v) = value.downcast_ref::<Vec<Box<dyn Any>>>() {
+                let cloned_vec: Vec<Box<dyn Any>> = v.iter().map(|item| {
+                    if let Some(v) = item.downcast_ref::<f64>() {
+                        Box::new(*v) as Box<dyn Any>
+                    } else if let Some(v) = item.downcast_ref::<String>() {
+                        Box::new(v.clone()) as Box<dyn Any>
+                    } else if let Some(v) = item.downcast_ref::<bool>() {
+                        Box::new(*v) as Box<dyn Any>
+                    } else if let Some(v) = item.downcast_ref::<TokenLiteral>() {
+                        Box::new(v.clone()) as Box<dyn Any>
+                    } else {
+                        panic!("Unsupported type in vector");
+                    }
+                }).collect();
+                return Ok(Box::new(cloned_vec)); // Handle arrays
             }
-
+    
             return Err(RuntimeError::new(
                 name,
                 format!("Unsupported type for '{}'.", name.lexeme),
             ));
         }
-
-        //  Check enclosing scope (nested environments)
+    
+        // Check enclosing scope (nested environments)
         if let Some(enclosing) = &self.enclosing {
             return enclosing.get(name);
         }
-
-        //  If not found, return an "Undefined variable" error
+    
+        // If not found, return an "Undefined variable" error
         Err(RuntimeError::new(
             name,
             format!("Undefined variable '{}'.", name.lexeme),
