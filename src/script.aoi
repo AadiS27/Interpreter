@@ -1,6 +1,11 @@
 var stage = "unknown";
-var age = 50;
-if (age < 18) {   stage = "child"; }
-else {  stage = "adult"; }
-write (stage);
-
+var age = 7;
+if (age < 18) {   
+    stage = "child";
+    write(stage);
+}
+else {  
+    stage = "adult";
+    write(stage); 
+}
+write(stage);

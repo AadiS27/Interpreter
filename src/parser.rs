@@ -42,8 +42,10 @@ impl Parser {
     fn assignment(&mut self) -> Result<Expr, ParseError> {
         let expr = self.equality(); // Parse left-hand side first
     
+            
+
         if self.match_tokens(&[TokenType::EQUAL]) {
-            let equals = self.previous().clone(); 
+           
             let value = self.assignment()?; // Right-associative!
     
             if let Expr::Variable(var) = expr { // Ensure LHS is a variable
@@ -377,5 +379,6 @@ impl Parser {
             else_branch,
         }
     }
+    
 }
 
