@@ -22,13 +22,16 @@ pub enum Expr {
     Variable(Variable),
     Assign(String, Box<Expr>), // Represents variable assignment
     If { condition: Box<Expr>, then_branch: Box<Expr>, else_branch: Option<Box<Expr>> },
+    Logical { left: Box<Expr>, operator: Token, right: Box<Expr> },
 }
     
 
 
-
-
-
+pub struct Logical {
+    pub left: Box< Expr>,
+    pub operator: Token,
+    pub right: Box< Expr>,
+}
 
 pub struct Binary {
     pub left: Box< Expr>,
@@ -129,6 +132,9 @@ impl Expr {
             Expr::Assign(name, expr) => format!("Assign({}, ...)", name),
             Expr::If { condition, then_branch, else_branch } => {
                 format!("If {{ {}, {}, {} }}", condition.accept(visitor), then_branch.accept(visitor), else_branch.as_ref().map_or("None".to_string(), |e| e.accept(visitor)))
+            }
+            Expr::Logical { left, operator, right } => {
+                format!("Logical {{ {}, {:?}, {} }}", left.accept(visitor), operator, right.accept(visitor))
             }
         }
     }

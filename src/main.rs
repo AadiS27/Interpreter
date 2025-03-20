@@ -16,6 +16,8 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: cargo run <filename>");
+     
+
         return;
     }
     
@@ -36,4 +38,5 @@ fn main() {
         }
         None => eprintln!("Parsing failed due to syntax errors."),
     }
+   
 }

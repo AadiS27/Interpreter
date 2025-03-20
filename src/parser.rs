@@ -37,16 +37,14 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
+   
         self.assignment() // Instead of self.equality()
     }
     fn assignment(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.equality(); // Parse left-hand side first
+        let expr = self.or()?; // This should be `or()`, not `equality()`
     
-            
-
         if self.match_tokens(&[TokenType::EQUAL]) {
-           
-            let value = self.assignment()?; // Right-associative!
+            let value = self.assignment()?; // Recursively parse the RHS
     
             if let Expr::Variable(var) = expr { // Ensure LHS is a variable
                 return Ok(Expr::Assign(var.name.lexeme.clone(), Box::new(value)));
@@ -54,13 +52,15 @@ impl Parser {
     
             return Err(ParseError::new("Invalid assignment target."));
         }
-    
+        
         Ok(expr)
     }
+    
     
 
     fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();
+        
 
         while self.match_tokens(&[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
             let operator = self.previous().clone();
@@ -348,6 +348,7 @@ impl Parser {
     }
     
     
+    
     fn block(&mut self) -> Vec<Stmt> {
         let mut statements = Vec::new();
     
@@ -378,6 +379,36 @@ impl Parser {
             then_branch,
             else_branch,
         }
+    }
+    fn and(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.equality(); // Parse left-hand side
+    
+        while self.match_tokens(&[TokenType::AND]) {
+            let operator = self.previous().clone();
+            let right = self.equality(); // Parse right-hand side
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+    
+        Ok(expr)
+    }
+    fn or(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.and()?; // Parse left-hand side
+    
+        while self.match_tokens(&[TokenType::OR]) {
+            let operator = self.previous().clone();
+            let right = self.and()?; // Parse right-hand side
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+    
+        Ok(expr)
     }
     
 }

@@ -25,6 +25,18 @@ impl Interpreter {
     fn execute(&mut self, stmt: &Stmt) -> Result<(), String> {
         self.visit_stmt(stmt)
     }
+    fn is_truthy(&self, value: &Arc<dyn Any + Send + Sync>) -> bool {
+        if let Some(b) = value.downcast_ref::<bool>() {
+            *b
+        } else if let Some(n) = value.downcast_ref::<f64>() {
+            *n != 0.0
+        } else if let Some(s) = value.downcast_ref::<String>() {
+            !s.is_empty()
+        } else {
+            false
+        }
+    }
+    
 
     fn execute_block(&mut self, statements: &[Stmt], new_env: Environment) -> Result<(), String> {
     let previous = std::mem::replace(&mut self.environment, new_env); // Swap environments
@@ -94,6 +106,29 @@ impl Interpreter {
         match expr {
           
             
+            Expr::Logical { left, operator, right } => {
+                let left_val = self.evaluate(left)?;
+                let left_truthy = self.is_truthy(&left_val);
+            
+                match operator.token_type {
+                    TokenType::OR => {
+                        if left_truthy {
+                            return Ok(Arc::new(true)); // Ensuring a boolean result
+                        }
+                    }
+                    TokenType::AND => {
+                        if !left_truthy {
+                            return Ok(Arc::new(false)); // Ensuring a boolean result
+                        }
+                    }
+                    _ => return Err(format!("Unsupported logical operator: {:?}", operator.token_type)),
+                }
+            
+                let right_val = self.evaluate(right)?;
+                Ok(Arc::new(self.is_truthy(&right_val))) // Ensure boolean result
+            }
+            
+    
             Expr::If { condition, then_branch, else_branch } => {
                 let condition = self.evaluate(condition)?;
                 if let Some(b) = condition.downcast_ref::<bool>() {
