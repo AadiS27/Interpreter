@@ -68,7 +68,7 @@ impl Environment {
     ///  Retrieves the value of a variable.
     pub fn get(&self, name: &Token) -> Result<Box<dyn Any>, RuntimeError> {
         if let Some(value) = self.values.get(&name.lexeme) {
-            println!("DEBUG: Retrieving variable '{}' -> {:?}", name.lexeme, value);
+            // println!("DEBUG: Retrieving variable '{}' -> {:?}", name.lexeme, value);
     
             // Ensure downcasting works correctly
             if let Some(v) = value.downcast_ref::<String>() {
@@ -102,7 +102,7 @@ impl Environment {
     ///  Assigns a new value to an existing variable.
     pub fn assign(&mut self, name: &Token, value: Box<dyn Any>) -> Result<(), RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
-            println!("DEBUG: Assigning '{}' -> {:?}", name.lexeme, value);
+            // println!("DEBUG: Assigning '{}' -> {:?}", name.lexeme, value);
     
             // Convert value to a proper type before inserting
             let stored_value: Box<dyn Any> = if let Some(v) = value.downcast_ref::<f64>() {

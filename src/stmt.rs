@@ -7,4 +7,8 @@ pub enum Stmt {
     Var { name: String, initializer: Option<Expr> },
     Block(Vec<Stmt>),
     If { condition: Expr, then_branch: Box<Stmt>, else_branch: Option<Box<Stmt>> },
+    While {
+        condition: Expr,
+        body: Box<Stmt>,
+    },
 }

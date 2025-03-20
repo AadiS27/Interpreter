@@ -50,6 +50,17 @@ impl Interpreter {
     
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
+            Stmt::While { condition, body } => {
+                println!("Loop running"); // Removed debug print of condition
+                while {
+                    
+                    let result = self.evaluate(condition)?;
+                    self.is_truthy(&result)
+                } {
+                    self.execute(body)?;
+                }
+                Ok(())
+            }
             Stmt::Block(statements) => {
                 let enclosing = self.environment.clone();
                 self.execute_block(statements, Environment::with_enclosing(enclosing))
@@ -89,8 +100,7 @@ impl Interpreter {
                 Ok(())
             },
             Stmt::Expression { expression } => {
-                let value = self.evaluate(expression)?;
-                // println!("{}", self.stringify(&value)); // Print the result for debugging
+                self.evaluate(expression)?;
                 Ok(())
             }
             Stmt::Print { expression } => {

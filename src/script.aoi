@@ -1,5 +1,11 @@
-var a = "hello";
-var b = "hello";
-(a = false) or (b = true) or (a = "hello");
-write(a);
-write(b);
+var x = 0;
+while (x < 3) {
+    write("Helloi");
+    x=x+1;
+}
+
+
+
+
+
+//TODO -- Need to fix if and else

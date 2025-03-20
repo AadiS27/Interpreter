@@ -295,6 +295,15 @@ impl Parser {
         if self.match_tokens(&[TokenType::IF]) {
             return Some(self.if_statement());
         }
+        if self.match_tokens(&[TokenType::WHILE]) {
+            return match self.while_statement() {
+                Ok(stmt) => Some(stmt),
+                Err(err) => {
+                    self.synchronize();
+                    None
+                }
+            };
+        }
         self.expression_statement()
     }
 
@@ -410,6 +419,21 @@ impl Parser {
     
         Ok(expr)
     }
+    fn while_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenType::LEFT_PAREN, "Expected '(' after 'while'.");
+        let condition = self.expression()?; // Parse condition
+        self.consume(TokenType::RIGHT_PAREN, "Expected ')' after condition.");
+        let body = match self.statement() {
+            Some(stmt) => stmt,
+            None => return Err(ParseError::new("Expected statement for while body")),
+        }; // Parse loop body
+    
+        Ok(Stmt::While {
+            condition,
+            body: Box::new(body),
+        })
+    }
+    
     
 }
 
