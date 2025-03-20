@@ -1,2 +1,4 @@
-var arr = [1, 2, 3];
-write(arr[1]);
+var name;
+write("what should we your name:");
+scan(name);
+write("Hello, " + name);

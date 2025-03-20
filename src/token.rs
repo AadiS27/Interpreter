@@ -99,6 +99,7 @@ impl Display for Token {
     VAR,
     WHILE,
     EOF,
+    SCAN,
 }
 pub struct Tokensizer {
     src: String,
@@ -242,6 +243,7 @@ let float_lexeme = if lexeme.contains('.') {
             "true" => TokenType::TRUE,
             "var" => TokenType::VAR,
             "while" => TokenType::WHILE,
+            "scan" => TokenType::SCAN,
             _ => TokenType::IDENTIFIER,
         };
     

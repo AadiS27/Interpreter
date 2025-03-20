@@ -1,5 +1,5 @@
 use crate::expr::Expr;
-
+use crate::token::Token;
 
 pub enum Stmt {
     Expression { expression: Expr },
@@ -11,4 +11,5 @@ pub enum Stmt {
         condition: Expr,
         body: Box<Stmt>,
     },
+    Input { name: Token },
 }

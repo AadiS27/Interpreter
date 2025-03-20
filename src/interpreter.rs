@@ -1,21 +1,13 @@
 use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenType, TokenLiteral};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::any::Any;
 use crate::environment::{self, Environment};
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
-}
-#[derive(Debug, Clone)]
-pub enum Value {
-    Number(f64),
-    String(String),
-    Boolean(bool),
-    Nil,
-    Array(Arc<Mutex<Vec<Value>>>),  // Array type
 }
 impl Interpreter {
     pub fn new() -> Self {
@@ -64,6 +56,23 @@ impl Interpreter {
     
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
+
+            Stmt::Input { name } => {
+                // Read user input from the console
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).expect("Failed to read input");
+                let input = input.trim().to_string(); // Remove whitespace
+            
+                // Try parsing as number, otherwise store as string
+                let value: Arc<dyn Any + Send + Sync> = if let Ok(num) = input.parse::<f64>() {
+                    Arc::new(num) // Store as number if possible
+                } else {
+                    Arc::new(input) // Store as string otherwise
+                };
+            
+                self.environment.borrow_mut().assign(name, value).map_err(|e| e.to_string())
+            }
+            
             Stmt::While { condition, body } => {
               
                 while {
@@ -129,38 +138,7 @@ impl Interpreter {
 
     fn evaluate(&mut self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
         match expr {
-            Expr::Array(elements) => {
-                let evaluated_elements = elements
-                    .iter()
-                    .map(|e| self.evaluate(e))
-                    .collect::<Result<Vec<_>, _>>()?;
-                return Ok(Arc::new(evaluated_elements)); // ✅ Store as Arc<Vec<T>>
-            }
-    
-            // ✅ Evaluating array indexing: arr[1]
-            Expr::Indexing { array, index } => {
-                let array_value = self.evaluate(array)?;
-                let index_value = self.evaluate(index)?;
-                println!("DEBUG: array_value = {:?}", array_value.type_id());
-                println!("DEBUG: index_value = {:?}", index_value.type_id());
-            
-                // ✅ Ensure `array_value` is an array
-                if let Some(arr) = array_value.downcast_ref::<Vec<Arc<dyn Any + Send + Sync>>>() {
-                    
-                    // ✅ Ensure `index_value` is a valid number
-                    if let Some(idx) = index_value.downcast_ref::<f64>() {
-                        let idx = *idx as usize; // Convert to usize for indexing
-    
-                        // ✅ Ensure index is within bounds
-                        if idx < arr.len() {
-                            return Ok(arr[idx].clone()); // ✅ Return the correct element
-                        } else {
-                            return Err(format!("Index {} out of bounds for array of size {}", idx, arr.len()));
-                        }
-                    }
-                }
-                Err("Invalid array indexing".to_string()) // ❌ Type mismatch error
-            }
+          
             
             Expr::Logical { left, operator, right } => {
                 let left_val = self.evaluate(left)?;
@@ -372,18 +350,19 @@ impl Interpreter {
     }
 
     fn stringify(&self, value: &Arc<dyn Any + Send + Sync>) -> String {
-        if let Some(n) = value.downcast_ref::<f64>() {
-            return n.to_string();
+        if let Some(s) = value.downcast_ref::<String>() {
+            return s.clone();
+        }
+        if let Some(num) = value.downcast_ref::<f64>() {
+            return num.to_string();
         }
         if let Some(b) = value.downcast_ref::<bool>() {
             return b.to_string();
         }
-        if let Some(s) = value.downcast_ref::<String>() {
-            return s.clone();
-        }
-        if value.downcast_ref::<()>().is_some() {
+        if value.is::<()>() {
             return "nil".to_string();
         }
-        "nil".to_string()
+        "Unknown".to_string()
     }
+    
 }

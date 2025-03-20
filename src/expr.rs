@@ -23,11 +23,6 @@ pub enum Expr {
     Assign(String, Box<Expr>), // Represents variable assignment
     If { condition: Box<Expr>, then_branch: Box<Expr>, else_branch: Option<Box<Expr>> },
     Logical { left: Box<Expr>, operator: Token, right: Box<Expr> },
-    Array(Vec<Expr>), // New: Array literal like [1, 2, 3]
-    Indexing {
-        array: Box<Expr>,
-        index: Box<Expr>,
-    },
 }
     
 
@@ -140,13 +135,6 @@ impl Expr {
             }
             Expr::Logical { left, operator, right } => {
                 format!("Logical {{ {}, {:?}, {} }}", left.accept(visitor), operator, right.accept(visitor))
-            }
-            Expr::Array(elements) => {
-                let elements_str: Vec<String> = elements.iter().map(|e| e.accept(visitor)).collect();
-                format!("Array({:?})", elements_str)
-            }
-            Expr::Indexing { array, index } => {
-                format!("Indexing {{ {}, {} }}", array.accept(visitor), index.accept(visitor))
             }
         }
     }
