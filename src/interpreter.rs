@@ -1,13 +1,21 @@
 use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenType, TokenLiteral};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::any::Any;
 use crate::environment::{self, Environment};
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
+}
+#[derive(Debug, Clone)]
+pub enum Value {
+    Number(f64),
+    String(String),
+    Boolean(bool),
+    Nil,
+    Array(Arc<Mutex<Vec<Value>>>),  // Array type
 }
 impl Interpreter {
     pub fn new() -> Self {
@@ -121,7 +129,38 @@ impl Interpreter {
 
     fn evaluate(&mut self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
         match expr {
-          
+            Expr::Array(elements) => {
+                let evaluated_elements = elements
+                    .iter()
+                    .map(|e| self.evaluate(e))
+                    .collect::<Result<Vec<_>, _>>()?;
+                return Ok(Arc::new(evaluated_elements)); // ✅ Store as Arc<Vec<T>>
+            }
+    
+            // ✅ Evaluating array indexing: arr[1]
+            Expr::Indexing { array, index } => {
+                let array_value = self.evaluate(array)?;
+                let index_value = self.evaluate(index)?;
+                println!("DEBUG: array_value = {:?}", array_value.type_id());
+                println!("DEBUG: index_value = {:?}", index_value.type_id());
+            
+                // ✅ Ensure `array_value` is an array
+                if let Some(arr) = array_value.downcast_ref::<Vec<Arc<dyn Any + Send + Sync>>>() {
+                    
+                    // ✅ Ensure `index_value` is a valid number
+                    if let Some(idx) = index_value.downcast_ref::<f64>() {
+                        let idx = *idx as usize; // Convert to usize for indexing
+    
+                        // ✅ Ensure index is within bounds
+                        if idx < arr.len() {
+                            return Ok(arr[idx].clone()); // ✅ Return the correct element
+                        } else {
+                            return Err(format!("Index {} out of bounds for array of size {}", idx, arr.len()));
+                        }
+                    }
+                }
+                Err("Invalid array indexing".to_string()) // ❌ Type mismatch error
+            }
             
             Expr::Logical { left, operator, right } => {
                 let left_val = self.evaluate(left)?;

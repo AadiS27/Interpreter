@@ -57,6 +57,8 @@ impl Display for Token {
     RIGHT_PAREN,
     LEFT_BRACE,
     RIGHT_BRACE,
+    RIGHT_BRACKET,
+    LEFT_BRACKET,
     COMMA,
     DOT,
     MINUS,
@@ -250,6 +252,8 @@ let float_lexeme = if lexeme.contains('.') {
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
+            '[' => self.add_token(TokenType::LEFT_BRACKET, TokenLiteral::Null),
+            ']' => self.add_token(TokenType::RIGHT_BRACKET, TokenLiteral::Null),
             '(' => self.add_token(TokenType::LEFT_PAREN, TokenLiteral::Null),
             ')' => self.add_token(TokenType::RIGHT_PAREN, TokenLiteral::Null),
             '{' => self.add_token(TokenType::LEFT_BRACE, TokenLiteral::Null),

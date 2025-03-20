@@ -57,6 +57,8 @@ impl Parser {
     }
     
     
+    
+
 
     fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();
@@ -174,13 +176,38 @@ impl Parser {
             return Ok(Expr::Literal(Literal::new(TokenLiteral::Null)));
         }
     
+        if self.match_tokens(&[TokenType::LEFT_BRACKET]) {
+            let mut elements = Vec::new();
+    
+            if !self.check(TokenType::RIGHT_BRACKET) { // Not an empty array
+                loop {
+                    elements.push(self.expression()?);
+                    if !self.match_tokens(&[TokenType::COMMA]) {
+                        break;
+                    }
+                }
+            }
+    
+            self.consume(TokenType::RIGHT_BRACKET, "Expect ']' after array elements.");
+            return Ok(Expr::Array(elements));
+        }
         // ✅ NEW: Handle identifiers (variable names)
         if self.match_tokens(&[TokenType::IDENTIFIER]) {
-            return Ok(Expr::Variable(Variable {
-                name: self.previous().clone(),
-            }));
-        }
+            let var_name = self.previous().clone();
     
+            // ✅ Handle array indexing: `arr[1]`
+            if self.match_tokens(&[TokenType::LEFT_BRACKET]) {
+                let index = self.expression()?;  // Parse the index expression
+                self.consume(TokenType::RIGHT_BRACKET, "Expect ']' after index.");
+                return Ok(Expr::Indexing {
+                    array: Box::new(Expr::Variable(Variable { name: var_name })),
+                    index: Box::new(index),
+                });
+            }
+    
+            return Ok(Expr::Variable(Variable { name: var_name }));
+        }
+         
         // ✅ Fix: Return error instead of panicking
         if self.match_tokens(&[TokenType::LEFT_PAREN]) {
             let expr = self.expression()?;
@@ -189,6 +216,7 @@ impl Parser {
                 expression: Box::new(expr),
             }));
         }
+        
     
         Err(ParseError::new(&format!("Error at '{}': Expect expression.", self.peek().lexeme)))
     }
