@@ -57,7 +57,7 @@ impl Interpreter {
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
             Stmt::While { condition, body } => {
-                println!("Loop running"); // Removed debug print of condition
+              
                 while {
                     
                     let result = self.evaluate(condition)?;

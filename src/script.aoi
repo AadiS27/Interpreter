@@ -1,7 +1,5 @@
-var stage = "unknown";
-var age = 50;
-if (age < 18) { stage = "child"; }
-if (age >= 18) { stage = "adult"; }
-write (stage);
-
-//TODO -- Need to fix if and else
+var x=0;
+while(x<3){
+    write(x);
+    x=x+1;
+}
