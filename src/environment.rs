@@ -1,28 +1,27 @@
 use std::collections::HashMap;
-use crate::token::Token;
 use std::any::Any;
+use std::sync::Arc;
+use crate::token::{Token, TokenLiteral};
 use crate::error::RuntimeError;
-use crate::token::TokenLiteral; // Add this line to import TokenLiteral
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Default)]
 pub struct Environment {
-    values: HashMap<String, Box<dyn std::any::Any>>,
-    enclosing: Option<Box<Environment>>, // For nested scopes
+    values: HashMap<String, Arc<dyn Any + Send + Sync>>,
+    enclosing: Option<Rc<RefCell<Environment>>>, // For nested scopes
 }
-
 
 impl Clone for Environment {
     fn clone(&self) -> Self {
         let mut cloned_values = HashMap::new();
         for (key, value) in &self.values {
             let cloned_value = if let Some(v) = value.downcast_ref::<f64>() {
-                Box::new(*v) as Box<dyn Any>
+                Arc::new(*v) as Arc<dyn Any + Send + Sync>
             } else if let Some(v) = value.downcast_ref::<String>() {
-                Box::new(v.clone()) as Box<dyn Any>
+                Arc::new(v.clone()) as Arc<dyn Any + Send + Sync>
             } else if let Some(v) = value.downcast_ref::<bool>() {
-                Box::new(*v) as Box<dyn Any>
-            } else if let Some(v) = value.downcast_ref::<TokenLiteral>() {
-                Box::new(v.clone()) as Box<dyn Any>
+                Arc::new(*v) as Arc<dyn Any + Send + Sync>
             } else {
                 panic!("Unsupported type in environment values");
             };
@@ -34,9 +33,10 @@ impl Clone for Environment {
         }
     }
 }
+
 impl Environment {
     /// Creates a new, empty environment (global scope).
-    pub fn new(enclosing: Option<Box<Environment>>) -> Self {
+    pub fn new(enclosing: Option<Rc<RefCell<Environment>>>) -> Self {
         Environment {
             values: HashMap::new(),
             enclosing,
@@ -47,87 +47,42 @@ impl Environment {
     pub fn with_enclosing(enclosing: Environment) -> Self {
         Environment {
             values: HashMap::new(),
-            enclosing: Some(Box::new(enclosing)),
+            enclosing: Some(Rc::new(RefCell::new(enclosing))),
         }
     }
 
-    ///  Defines a new variable or updates an existing one in the current scope.
-    pub fn define(&mut self, name: String, value: Box<dyn Any>) {
-        //  Ensure uninitialized variables store `nil`
-        let stored_value: Box<dyn Any> = if value.downcast_ref::<TokenLiteral>() == Some(&TokenLiteral::Null) {
-            Box::new(TokenLiteral::Null)
-        } else {
-            value
-        };
-    
-        self.values.insert(name, stored_value);
+    /// Defines a new variable or updates an existing one in the current scope.
+    pub fn define(&mut self, name: String, value: Arc<dyn Any + Send + Sync>) {
+        self.values.insert(name, value);
     }
-    
-    
 
-    ///  Retrieves the value of a variable.
-    pub fn get(&self, name: &Token) -> Result<Box<dyn Any>, RuntimeError> {
+    /// Retrieves the value of a variable.
+    pub fn get(&self, name: &Token) -> Result<Arc<dyn Any + Send + Sync>, RuntimeError> {
         if let Some(value) = self.values.get(&name.lexeme) {
-            // println!("DEBUG: Retrieving variable '{}' -> {:?}", name.lexeme, value);
-    
-            // Ensure downcasting works correctly
-            if let Some(v) = value.downcast_ref::<String>() {
-                return Ok(Box::new(v.clone()));
-            } else if let Some(v) = value.downcast_ref::<f64>() {
-                return Ok(Box::new(*v));
-            } else if let Some(v) = value.downcast_ref::<bool>() {
-                return Ok(Box::new(*v));
-            } else {
-                println!("DEBUG: Unknown type stored for '{}'", name.lexeme);
-                return Err(RuntimeError::new(
-                    name,
-                    format!("Unsupported type for '{}'.", name.lexeme),
-                ));
-            }
+            return Ok(value.clone());
         }
     
-        // Check enclosing scope if not found
-        if let Some(enclosing) = &self.enclosing {
-            return enclosing.get(name);
+        // 🔥 If not found, check parent environment
+        if let Some(ref enclosing) = self.enclosing {
+            return enclosing.borrow().get(name);
         }
     
-        Err(RuntimeError::new(
-            name,
-            format!("Undefined variable '{}'.", name.lexeme),
-        ))
+        Err(RuntimeError::new(name, format!("Undefined variable '{}'.", name.lexeme)))
     }
-    
-    
-    
-    ///  Assigns a new value to an existing variable.
-    pub fn assign(&mut self, name: &Token, value: Box<dyn Any>) -> Result<(), RuntimeError> {
+
+    /// Assigns a new value to an existing variable.
+    pub fn assign(&mut self, name: &Token, value: Arc<dyn Any + Send + Sync>) -> Result<(), RuntimeError> {
         if self.values.contains_key(&name.lexeme) {
-            // println!("DEBUG: Assigning '{}' -> {:?}", name.lexeme, value);
-    
-            // Convert value to a proper type before inserting
-            let stored_value: Box<dyn Any> = if let Some(v) = value.downcast_ref::<f64>() {
-                Box::new(*v)
-            } else if let Some(v) = value.downcast_ref::<String>() {
-                Box::new(v.clone())
-            } else if let Some(v) = value.downcast_ref::<bool>() {
-                Box::new(*v)
-            } else {
-                value
-            };
-    
-            self.values.insert(name.lexeme.clone(), stored_value);
+            self.values.insert(name.lexeme.clone(), value);
             return Ok(());
         }
     
-        // If not found in the current scope, try the enclosing scope
-        if let Some(enclosing) = &mut self.enclosing {
-            return enclosing.assign(name, value);
+        // 🔥 If variable isn't found, assign in parent environment
+        if let Some(ref mut enclosing) = self.enclosing {
+            return enclosing.borrow_mut().assign(name, value);
         }
-    
-        Err(RuntimeError::new(
-            name,
-            format!("Undefined variable '{}'.", name.lexeme),
-        ))
+        
+        Err(RuntimeError::new(name, format!("Undefined variable '{}'.", name.lexeme)))
     }
     
     

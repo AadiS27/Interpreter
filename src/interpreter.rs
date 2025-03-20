@@ -2,16 +2,17 @@ use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenType, TokenLiteral};
 use std::sync::Arc;
-
+use std::rc::Rc;
+use std::cell::RefCell;
 use std::any::Any;
 use crate::environment::{self, Environment};
 pub struct Interpreter {
-    environment: Environment,
+    environment: Rc<RefCell<Environment>>,
 }
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
-            environment: environment::Environment::new(None),
+            environment: Rc::new(RefCell::new(environment::Environment::new(None))),
         }
     }
 
@@ -38,14 +39,19 @@ impl Interpreter {
     }
     
 
-    fn execute_block(&mut self, statements: &[Stmt], new_env: Environment) -> Result<(), String> {
-    let previous = std::mem::replace(&mut self.environment, new_env); // Swap environments
+    pub fn execute_block(
+        &mut self,
+        statements: &[Stmt],
+        environment: Rc<RefCell<Environment>>,
+    ) -> Result<(), String> {
+        let previous = self.environment.clone();  // ✅ Save old environment
+        self.environment = environment.clone(); 
 
-    let result = statements.iter().try_for_each(|stmt| self.execute(stmt)); // Execute block
+        let result = statements.iter().try_for_each(|stmt| self.execute(stmt));
 
-    self.environment = previous; // Restore old environment after execution
-    result
-}
+        self.environment = previous; // Restore previous environment after execution
+        result
+    }
 
     
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
@@ -63,7 +69,8 @@ impl Interpreter {
             }
             Stmt::Block(statements) => {
                 let enclosing = self.environment.clone();
-                self.execute_block(statements, Environment::with_enclosing(enclosing))
+                let new_env = Environment::new(Some(enclosing));
+                self.execute_block(statements, Rc::new(RefCell::new(new_env)))
             }
             
             Stmt::If { condition, then_branch, else_branch } => {
@@ -88,15 +95,15 @@ impl Interpreter {
                     Arc::new(())
                 };
                 let cloned_value = if let Some(v) = value.downcast_ref::<f64>() {
-                    Box::new(*v) as Box<dyn Any + Send + Sync>
+                    Arc::new(*v) as Arc<dyn Any + Send + Sync>
                 } else if let Some(v) = value.downcast_ref::<String>() {
-                    Box::new(v.clone()) as Box<dyn Any + Send + Sync>
+                    Arc::new(v.clone()) as Arc<dyn Any + Send + Sync>
                 } else if let Some(v) = value.downcast_ref::<bool>() {
-                    Box::new(*v) as Box<dyn Any + Send + Sync>
+                    Arc::new(*v) as Arc<dyn Any + Send + Sync>
                 } else {
-                    Box::new(()) as Box<dyn Any + Send + Sync>
+                    Arc::new(()) as Arc<dyn Any + Send + Sync>
                 };
-                self.environment.define(name.clone(), cloned_value);
+                self.environment.borrow_mut().define(name.clone(), cloned_value);
                 Ok(())
             },
             Stmt::Expression { expression } => {
@@ -160,7 +167,7 @@ impl Interpreter {
                     TokenLiteral::Identifier(name.name.lexeme.clone())
                 );
             
-                match self.environment.get(&token) {
+                match self.environment.borrow().get(&token) {
                     Ok(value) => {
                         if let Some(v) = value.downcast_ref::<f64>() {
                             Ok(Arc::new(*v))
@@ -181,15 +188,15 @@ impl Interpreter {
             Expr::Assign(name, value_expr) => {
                 let value = self.evaluate(value_expr)?;
                 let cloned_value = if let Some(v) = value.downcast_ref::<f64>() {
-                    Box::new(*v) as Box<dyn Any + Send + Sync>
+                    Arc::new(*v) as Arc<dyn Any + Send + Sync>
                 } else if let Some(v) = value.downcast_ref::<String>() {
-                    Box::new(v.clone()) as Box<dyn Any + Send + Sync>
+                    Arc::new(v.clone()) as Arc<dyn Any + Send + Sync>
                 } else if let Some(v) = value.downcast_ref::<bool>() {
-                    Box::new(*v) as Box<dyn Any + Send + Sync>
+                    Arc::new(*v) as Arc<dyn Any + Send + Sync>
                 } else {
-                    Box::new(()) as Box<dyn Any + Send + Sync>
+                    Arc::new(()) as Arc<dyn Any + Send + Sync>
                 };
-                self.environment.assign(&Token::new(TokenType::IDENTIFIER, name.clone(), TokenLiteral::Identifier(name.clone())), cloned_value).map_err(|e| e.to_string())?;
+                self.environment.borrow_mut().assign(&Token::new(TokenType::IDENTIFIER, name.clone(), TokenLiteral::Identifier(name.clone())), cloned_value).map_err(|e| e.to_string())?;
                 Ok(value)
             }
             Expr::Literal(lit) => {
