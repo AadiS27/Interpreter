@@ -1,4 +1,3 @@
-var name;
-write("what should we your name:");
-scan(name);
-write("Hello, " + name);
+for(var i=0;i<5;i=i+1){
+    write("Hello"+i);
+}

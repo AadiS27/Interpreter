@@ -57,10 +57,29 @@ impl Interpreter {
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
 
+            Stmt::For { initializer, condition, increment, body } => {
+                if let Some(init) = initializer {
+                    self.execute(init)?;
+                }
+                while {
+                    if let Some(cond) = condition {
+                        let result = self.evaluate(cond)?;
+                        self.is_truthy(&result)
+                    } else {
+                        true
+                    }
+                } {
+                    self.execute(body)?;
+                    if let Some(inc) = increment {
+                        self.evaluate(inc)?;
+                    }
+                }
+                Ok(())
+            }
             Stmt::Input { name } => {
                 // Read user input from the console
                 let mut input = String::new();
-                std::io::stdin().read_line(&mut input).expect("Failed to read input");
+                std::io::stdin().read_line(&mut input).expect("Failed to read input");// Read user input from the console
                 let input = input.trim().to_string(); // Remove whitespace
             
                 // Try parsing as number, otherwise store as string

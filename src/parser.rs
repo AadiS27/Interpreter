@@ -312,6 +312,15 @@ impl Parser {
                 }
             };
         }
+        if self.match_tokens(&[TokenType::FOR]) {
+            return match self.for_statement() {
+                Ok(stmt) => Some(stmt),
+                Err(err) => {
+                    self.synchronize();
+                    None
+                }
+            };
+        }
         self.expression_statement()
     }
 
@@ -440,6 +449,59 @@ impl Parser {
             condition,
             body: Box::new(body),
         })
+        
+    }
+    fn for_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'.");
+    
+        // 🔹 Parse the initializer (`var i = 0;`)
+        let initializer = if self.match_tokens(&[TokenType::SEMICOLON]) {
+            None
+        } else if self.match_tokens(&[TokenType::VAR]) {
+            Some(Box::new(self.variable_declaration()))
+        } else {
+            Some(Box::new(Stmt::Expression { expression: self.expression()? }))
+        };
+    
+        // 🔹 Parse the condition (`i < 5;`)
+        let condition = if !self.check(TokenType::SEMICOLON) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(TokenType::SEMICOLON, "Expect ';' after loop condition.");
+    
+        // 🔹 Parse the increment (`i = i + 1`)
+        let increment = if !self.check(TokenType::RIGHT_PAREN) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.");
+    
+        // 🔹 Parse the loop body (`{ write(i); }`)
+        let mut body = match self.statement() {
+            Some(stmt) => stmt,
+            None => return Err(ParseError::new("Expected statement for loop body")),
+        };
+    
+        // ✅ Append the increment to the end of the loop
+        if let Some(inc) = increment {
+            body = Stmt::Block(vec![body, Stmt::Expression { expression: inc }]);
+        }
+    
+        // ✅ Convert into `while (condition) { body }`
+        let while_loop = Stmt::While {
+            condition: condition.unwrap_or(Expr::Literal(Literal::new(TokenLiteral::Boolean(true)))), // Default: Always true
+            body: Box::new(body),
+        };
+    
+        // ✅ Wrap everything in a block: `{ var i = 0; while (i < 5) { body; i = i + 1; } }`
+        if let Some(init) = initializer {
+            return Ok(Stmt::Block(vec![*init, while_loop]));
+        }
+    
+        Ok(while_loop)
     }
     
     

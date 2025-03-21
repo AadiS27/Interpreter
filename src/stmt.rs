@@ -12,4 +12,10 @@ pub enum Stmt {
         body: Box<Stmt>,
     },
     Input { name: Token },
+    For {
+        initializer: Option<Box<Stmt>>,
+        condition: Option<Expr>,
+        increment: Option<Expr>,
+        body: Box<Stmt>,
+    },
 }
