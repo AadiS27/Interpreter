@@ -1,6 +1,7 @@
 var n;
 write("give me value of n");
 scan(n);
-for(var i=n;i<5;i=i+1){
-    write("Hello"+i);
+while(n<10000){
+    write(n);
+    n=n+1;
 }

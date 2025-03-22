@@ -5,8 +5,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::token::Token;
 use crate::error::RuntimeError;
-use crate::native_fn::NativeFunction; // Import NativeFunction trait
-use crate::native_fn::ClockFunction; // Import ClockFunction
+
 
 #[derive(Default)]
 pub struct Environment {
@@ -24,8 +23,7 @@ impl Clone for Environment {
                 Arc::new(v.clone()) as Arc<dyn Any + Send + Sync>
             } else if let Some(v) = value.downcast_ref::<bool>() {
                 Arc::new(*v) as Arc<dyn Any + Send + Sync>
-            } else if value.downcast_ref::<Arc<dyn NativeFunction>>().is_some() {
-                value.clone()
+            
             } else {
                 panic!("Unsupported type in environment values");
             };
@@ -46,14 +44,7 @@ impl Environment {
             enclosing,
         }
     }
-    pub fn new_global() -> Rc<RefCell<Self>> {
-        let env = Rc::new(RefCell::new(Environment::new(None)));
-
-        // Example of defining a native function (assuming `ClockFunction` implements `NativeFunction`)
-        env.borrow_mut().define_native("clock", ClockFunction {});
-
-        env
-    }
+   
 
     /// Creates a new environment with an enclosing scope (nested scope).
     pub fn with_enclosing(enclosing: Rc<RefCell<Environment>>) -> Self {
@@ -70,9 +61,7 @@ impl Environment {
     }
 
     /// Defines a built-in (native) function in the environment.
-    pub fn define_native<T: NativeFunction + 'static>(&mut self, name: &str, function: T) {
-        self.values.insert(name.to_string(), Arc::new(function));
-    }
+   
     /// Retrieves the value of a variable.
     pub fn get(&self, name: &Token) -> Result<Arc<dyn Any + Send + Sync>, RuntimeError> {
         if let Some(value) = self.values.get(&name.lexeme) {

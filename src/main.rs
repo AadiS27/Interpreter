@@ -6,7 +6,7 @@ mod interpreter;
 mod parser;
 mod stmt;
 mod environment;
-mod native_fn;
+
 
 use std::fs;
 use std::env;
