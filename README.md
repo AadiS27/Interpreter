@@ -1,86 +1,79 @@
-# 🌟 Aoi - A Rust-Based Interpreter
+# 🦀 Aoi - A Lightweight Interpreter in Rust
 
-Aoi is a simple yet powerful interpreted programming language written in Rust. Designed for ease of use and extensibility, Aoi currently supports variables, conditionals, loops, functions, and basic input/output operations. The project is in active development, and upcoming features will make Aoi even more versatile.
-
----
-
-## ✨ Features
-✅ Variable declaration and assignment with dynamic typing  
-✅ Conditional statements (`if`, `else`) for decision-making  
-✅ Loop constructs (`for`, `while`) for iterative operations  
-✅ Function support with parameters, closures, and return values  
-✅ Basic input/output operations (`write`, `input`)  
-✅ Memory-efficient dynamic typing using `Arc<dyn Any + Send + Sync>`  
-✅ Error handling for better debugging and development  
+Aoi is a simple yet powerful interpreted programming language built in Rust. It is designed for ease of use and flexibility, making it a great choice for scripting, learning interpreters, and exploring programming language design. Aoi is inspired by modern scripting languages and aims to provide an intuitive and enjoyable coding experience.
 
 ---
 
 ## 📥 Installation
-If you don't have Rust installed, install it first by running:
 
-```sh
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
+To use Aoi, you need to have Rust installed. If you don't have Rust installed, follow these steps:
 
-Then, clone this repository and build the project:
+1. Install Rust using [rustup](https://www.rust-lang.org/tools/install):
+   ```sh
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   ```
+2. Clone this repository:
+   ```sh
+   git clone https://github.com/AadiS27/Interpreter.git
+   cd Interpreter
+   ```
+3. Build the project using Cargo:
+   ```sh
+   cargo build --release
+   ```
 
-```sh
-git clone https://github.com/AadiS27/Interpreter.git
-cd Interpreter
-cargo build --release
-```
+Aoi is designed to be lightweight and efficient, making it an excellent choice for scripting tasks, automation, and learning interpreter development in Rust.
 
 ---
 
 ## 🚀 Running Aoi Scripts
-To run an Aoi script, follow these steps:
 
-1️⃣ Navigate to the `src` folder:
-   ```sh
-   cd src
-   ```
-2️⃣ Write your Aoi script in `script.aoi`.
-3️⃣ Execute the script using:
-   ```sh
-   cargo run script.aoi
-   ```
+To run an Aoi script, navigate to the `src` directory and execute your script file:
 
----
-
-## 📜 Example Aoi Script
-Here's an example of a simple Aoi function:
-
-```aoi
-fun add(a, b) {
-    return a + b;
-}
-
-write(add(3, 5)); // Output: 8
+```sh
+cd src
+cargo run script.aoi
 ```
 
-Aoi allows you to define reusable functions and perform mathematical operations with ease.
+Write your Aoi code inside `script.aoi` and run it using the above command. The interpreter will process your script and display the output.
+
+Aoi allows you to write expressive and powerful scripts using a clean and simple syntax, making it ideal for quick prototyping and automation tasks.
 
 ---
 
-## 🔮 Roadmap & Future Enhancements
-Aoi is still evolving, and several exciting features are in the pipeline:
+## 📜 Aoi Language Syntax
 
-- [ ] **Array support** 📦 — Enable the use of lists and collections
-- [ ] **Class-based Object System** 🏗️ — Implement object-oriented programming capabilities
-- [ ] **Improved error handling** 🛠️ — Enhance debugging and error messages
-- [ ] **Expanded standard library** 📚 — Introduce more built-in functions for convenience
-- [ ] **Optimized execution speed** ⚡ — Improve interpreter performance
-- [ ] **More built-in operators and functions** 🔢 — Extend language expressiveness
+Aoi has an easy-to-understand syntax that includes variables, functions, loops, conditionals, and more.
+For a detailed guide on Aoi’s syntax, refer to the [Syntax Guide](https://github.com/AadiS27/Interpreter/blob/main/src/syntax.md).
 
-These features will make Aoi more powerful and user-friendly. Stay tuned for future updates! 🚀
+Aoi’s syntax is designed to be beginner-friendly while still offering powerful features for experienced developers. The language supports dynamic typing, allowing flexible data manipulation and intuitive programming constructs.
+
+---
+
+## 🔮 Upcoming Features
+
+Aoi is constantly evolving! Here are some exciting features that will be added soon:
+
+- **Arrays** 📦 - Support for lists and collections, allowing developers to work with sequences of values efficiently.
+- **Classes** 🏗️ - Object-oriented programming capabilities, enabling the creation of reusable and modular code structures.
+- **File Handling** 📂 - Read and write files seamlessly, making Aoi more powerful for scripting and automation.
+- **Enhanced Error Handling** 🚨 - More detailed and user-friendly error messages, improving debugging and development experience.
+- **Performance Improvements** ⚡ - Optimizations to make the interpreter run faster and handle complex scripts more efficiently.
+
+Aoi is in active development, and more features will be introduced in future updates. Stay tuned for exciting improvements and new capabilities! 🚀
 
 ---
 
 ## 🤝 Contributing
-We welcome contributions! If you have ideas or find bugs, feel free to open an issue or submit a pull request.
 
----
+Aoi is an open-source project, and contributions are always welcome! If you find any bugs, issues, or improvements, feel free to fork the repository, make your changes, and submit a pull request. 
 
-## 📜 License
-This project is licensed under the MIT License. Enjoy using Aoi and help us improve it! 😊
+### Steps to Contribute:
+1. Fork the repository on GitHub.
+2. Create a new branch for your feature or fix.
+3. Make your changes and commit them with clear messages.
+4. Push the changes to your fork.
+5. Submit a pull request for review.
+
+Every contribution helps in making Aoi better! Let's build something amazing together! 🚀
 
