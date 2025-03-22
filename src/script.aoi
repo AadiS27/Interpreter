@@ -1,4 +1,6 @@
-fun add(a, b) {
-    return a + b;
+var age = 18;
+if (age >= 18) {
+    write("You are an adult.");
+} else {
+    write("You are a minor.");
 }
-write( add(3, 5)); 
