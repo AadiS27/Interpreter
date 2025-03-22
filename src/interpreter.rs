@@ -79,6 +79,8 @@ impl Interpreter {
         self.environment = previous; // Restore previous environment after execution
         result
     }
+
+    
     fn call_function(
         &mut self,
         function: &Function,
@@ -91,30 +93,55 @@ impl Interpreter {
             environment.borrow_mut().define(param.lexeme.clone(), arg.clone());
         }
     
-        // Store the current environment and switch to the function's environment
+        // Store previous environment and switch to function's environment
         let previous_environment = self.environment.clone();
         self.environment = environment.clone();
     
-        // Execute function body
-        let result = (|| {
-            for stmt in &function.body {
-                if let Stmt::Return { value, .. } = &**stmt {
-                    if let Some(expr) = value {
-                        return self.evaluate(expr);
-                    } else {
-                        return Ok(Arc::new(())); // Return nil for empty return statements
-                    }
-                }
-                self.execute(&**stmt)?;
-            }
-            Ok(Arc::new(())) // Default return value (nil)
-        })();
+        let mut return_value: Option<Arc<dyn Any + Send + Sync>> = None;
     
-        // Restore the previous environment after function execution
+        for stmt in &function.body {
+            match self.execute(&**stmt) {
+                Err(e) if e.starts_with("Return:") => {
+                    // Extract the value from the error message
+                    // This is a temporary solution until we implement proper return handling
+                    let value_str = e.strip_prefix("Return: ").unwrap_or("");
+                    
+                    // Try to convert common types
+                    if value_str == "true" {
+                        return_value = Some(Arc::new(true));
+                    } else if value_str == "false" {
+                        return_value = Some(Arc::new(false));
+                    } else if let Ok(num) = value_str.parse::<i64>() {
+                        return_value = Some(Arc::new(num));
+                    } else if let Ok(num) = value_str.parse::<f64>() {
+                        return_value = Some(Arc::new(num));
+                    } else {
+                        // Remove the debug formatting artifacts from the string
+                        let cleaned_str = value_str.trim()
+                            .trim_start_matches("Some(")
+                            .trim_end_matches(")")
+                            .trim_matches('"');
+                        return_value = Some(Arc::new(cleaned_str.to_string()));
+                    }
+                    break;
+                }
+                Err(e) => {
+                    self.environment = previous_environment;
+                    return Err(e);
+                }
+                Ok(_) => continue,
+            }
+        }
+    
+        // Restore previous environment
         self.environment = previous_environment;
     
-        result
+        Ok(return_value.unwrap_or_else(|| Arc::new(0_i64)))
     }
+    
+    
+    
+    
     
     
     
@@ -128,7 +155,23 @@ impl Interpreter {
                 } else {
                     Arc::new(())
                 };
-                Err(format!("Return: {:?}", value))
+                
+                // Create a cleaner string representation for the return value
+                let return_str = if let Some(v) = value.downcast_ref::<i64>() {
+                    format!("Return: {}", v)
+                } else if let Some(v) = value.downcast_ref::<f64>() {
+                    format!("Return: {}", v)
+                } else if let Some(v) = value.downcast_ref::<bool>() {
+                    format!("Return: {}", v)
+                } else if let Some(v) = value.downcast_ref::<String>() {
+                    format!("Return: {}", v)
+                } else if value.is::<()>() {
+                    String::from("Return: nil")
+                } else {
+                    format!("Return: {}", self.stringify(&value))
+                };
+                
+                Err(return_str)
             }
             Stmt::Function { name, params, body } => {
                 let function = Arc::new(Function::new(
@@ -261,23 +304,27 @@ impl Interpreter {
         match expr {
 
             Expr::Call { callee, arguments } => {
-                // ✅ Step 1: Evaluate function name
                 let function_value = self.evaluate(callee)?;
-    
-                // ✅ Step 2: Cast to `Function`
+            
                 let function = function_value
                     .downcast_ref::<Function>()
                     .ok_or_else(|| "Runtime error: Expected function, found unsupported type.".to_string())?;
-    
-                // ✅ Step 3: Evaluate function arguments
+            
                 let mut args = Vec::new();
                 for arg in arguments {
                     args.push(self.evaluate(arg)?);
                 }
-    
-                // ✅ Step 4: Execute function
-                self.call_function(function, args)
+            
+                let result = self.call_function(function, args)?;
+                
+                // ✅ Ensure result is properly unwrapped
+                if let Some(value) = result.downcast_ref::<i64>() {
+                    return Ok(Arc::new(*value)); // ✅ Convert back to expected type
+                }
+                
+                Ok(result) // ✅ Ensure correct type is returned
             }
+            
             Expr::Logical {
                 left,
                 operator,
@@ -314,19 +361,22 @@ impl Interpreter {
                 then_branch,
                 else_branch,
             } => {
-                let condition = self.evaluate(condition)?;
-                if let Some(b) = condition.downcast_ref::<bool>() {
-                    if *b {
-                        self.evaluate(then_branch)
-                    } else if let Some(else_branch) = else_branch {
-                        self.evaluate(else_branch)
+                let condition_value = self.evaluate(condition)?;
+            
+                // Ensure the condition is treated as a boolean
+                if let Some(condition_bool) = condition_value.downcast_ref::<bool>() {
+                    if *condition_bool {
+                        return self.evaluate(then_branch);
+                    } else if let Some(else_expr) = else_branch {
+                        return self.evaluate(else_expr);
                     } else {
-                        Ok(Arc::new(()))
+                        return Ok(Arc::new(())); // Ensure that the if-expression always returns a value (avoid nil issues)
                     }
                 } else {
-                    Err("Condition must be a boolean.".to_string())
+                    return Err("Runtime error: Condition must be a boolean.".to_string());
                 }
             }
+            
             Expr::Variable(name) => {
                 let token = Token::new(
                     TokenType::IDENTIFIER,
@@ -421,29 +471,80 @@ impl Interpreter {
                 let right = self.evaluate(&binary.right)?;
 
                 match binary.operator.token_type {
-                    TokenType::PLUS => {
-                        if let (Some(l), Some(r)) =
-                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
-                        {
-                            return Ok(Arc::new(l + r));
-                        }
-                        if let (Some(l), Some(r)) = (
-                            left.downcast_ref::<String>(),
-                            right.downcast_ref::<String>(),
-                        ) {
-                            return Ok(Arc::new(format!("{}{}", l, r)));
-                        }
-                        // NEW: Allow string + any other type by converting to string
-                        if let Some(l) = left.downcast_ref::<String>() {
-                            return Ok(Arc::new(format!("{}{}", l, self.stringify(&right))));
-                        }
-                        if let Some(r) = right.downcast_ref::<String>() {
-                            return Ok(Arc::new(format!("{}{}", self.stringify(&left), r)));
-                        }
-                        Err("Operands must be two numbers or two strings.".to_string())
+                    // In your binary operation handler for PLUS
+                TokenType::PLUS => {
+                    // First, try to handle the case where both are f64
+                    if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        return Ok(Arc::new(l + r));
                     }
+                    
+                    // Add this new case to handle i64 + i64
+                    if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<i64>()) {
+                        return Ok(Arc::new(l + r));
+                    }
+                    
+                    // Add conversion between i64 and f64
+                    if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<f64>()) {
+                        return Ok(Arc::new(*l as f64 + r));
+                    }
+                    
+                    if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<i64>()) {
+                        return Ok(Arc::new(l + *r as f64));
+                    }
+                    
+                    // String handling remains the same...
+                    if let (Some(l), Some(r)) = (
+                        left.downcast_ref::<String>(),
+                        right.downcast_ref::<String>(),
+                    ) {
+                        return Ok(Arc::new(format!("{}{}", l, r)));
+                    }
+                    
+                    // Mixed string handling remains the same...
+                    if let Some(l) = left.downcast_ref::<String>() {
+                        return Ok(Arc::new(format!("{}{}", l, self.stringify(&right))));
+                    }
+                    if let Some(r) = right.downcast_ref::<String>() {
+                        return Ok(Arc::new(format!("{}{}", self.stringify(&left), r)));
+                    }
+                    
+                    Err("Operands must be two numbers or two strings.".to_string())
+                }
 
                     TokenType::MINUS => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l - r));
+                        }
+                        
+                        // Add this new case to handle i64 + i64
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<i64>()) {
+                            return Ok(Arc::new(l - r));
+                        }
+                        
+                        // Add conversion between i64 and f64
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(*l as f64 - r));
+                        }
+                        
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<i64>()) {
+                            return Ok(Arc::new(l - *r as f64));
+                        }if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l - r));
+                        }
+                        
+                        // Add this new case to handle i64 + i64
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<i64>()) {
+                            return Ok(Arc::new(l * r));
+                        }
+                        
+                        // Add conversion between i64 and f64
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(*l as f64 * r));
+                        }
+                        
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<i64>()) {
+                            return Ok(Arc::new(l * *r as f64));
+                        }
                         if let (Some(l), Some(r)) =
                             (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
                         {
@@ -452,6 +553,23 @@ impl Interpreter {
                         Err("Operands must be numbers.".to_string())
                     }
                     TokenType::STAR => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l * r));
+                        }
+                        
+                        // Add this new case to handle i64 + i64
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<i64>()) {
+                            return Ok(Arc::new(l * r));
+                        }
+                        
+                        // Add conversion between i64 and f64
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(*l as f64 * r));
+                        }
+                        
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<i64>()) {
+                            return Ok(Arc::new(l * *r as f64));
+                        }
                         if let (Some(l), Some(r)) =
                             (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
                         {
@@ -460,6 +578,23 @@ impl Interpreter {
                         Err("Operands must be numbers.".to_string())
                     }
                     TokenType::SLASH => {
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(l / r));
+                        }
+                        
+                        // Add this new case to handle i64 + i64
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<i64>()) {
+                            return Ok(Arc::new(l / r));
+                        }
+                        
+                        // Add conversion between i64 and f64
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<i64>(), right.downcast_ref::<f64>()) {
+                            return Ok(Arc::new(*l as f64 / r));
+                        }
+                        
+                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<i64>()) {
+                            return Ok(Arc::new(l / *r as f64));
+                        }
                         if let (Some(l), Some(r)) =
                             (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
                         {
@@ -539,18 +674,16 @@ impl Interpreter {
     }
 
     fn stringify(&self, value: &Arc<dyn Any + Send + Sync>) -> String {
-        if let Some(s) = value.downcast_ref::<String>() {
-            return s.clone();
-        }
-        if let Some(num) = value.downcast_ref::<f64>() {
-            return num.to_string();
-        }
-        if let Some(b) = value.downcast_ref::<bool>() {
-            return b.to_string();
-        }
-        if value.is::<()>() {
+        if let Some(v) = value.downcast_ref::<i64>() {
+            return v.to_string();
+        } else if let Some(v) = value.downcast_ref::<f64>() {
+            return v.to_string();
+        } else if let Some(v) = value.downcast_ref::<String>() {
+            return v.clone();
+        } else if value.downcast_ref::<()>().is_some() {
             return "nil".to_string();
         }
-        "Unknown".to_string()
+        "(Unknown type)".to_string() // Default case
     }
+    
 }
