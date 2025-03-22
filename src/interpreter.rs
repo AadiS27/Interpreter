@@ -1,11 +1,39 @@
+use crate::environment::{self, Environment};
 use crate::expr::Expr;
 use crate::stmt::Stmt;
-use crate::token::{Token, TokenType, TokenLiteral};
-use std::sync::Arc;
-use std::rc::Rc;
-use std::cell::RefCell;
+use crate::token::{Token, TokenLiteral, TokenType};
 use std::any::Any;
-use crate::environment::{self, Environment};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
+
+#[derive(Clone)]
+struct Function {
+    name: String,
+    params: Vec<Token>,
+    body: Vec<Box<Stmt>>,
+    closure: Rc<RefCell<Environment>>, // Captures the defining environment
+}
+
+// Implement Send and Sync for Function to satisfy Arc<dyn Any + Send + Sync>
+// This is safe because we only use Function for serialization/deserialization
+unsafe impl Send for Function {}
+unsafe impl Sync for Function {}
+impl Function {
+    fn new(
+        name: String,
+        params: Vec<Token>,
+        body: Vec<Box<Stmt>>,
+        closure: Rc<RefCell<Environment>>,
+    ) -> Self {
+        Function {
+            name,
+            params,
+            body,
+            closure,
+        }
+    }
+}
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
 }
@@ -37,27 +65,93 @@ impl Interpreter {
             false
         }
     }
-    
 
     pub fn execute_block(
         &mut self,
         statements: &[Stmt],
         environment: Rc<RefCell<Environment>>,
     ) -> Result<(), String> {
-        let previous = self.environment.clone();  // ✅ Save old environment
-        self.environment = environment.clone(); 
+        let previous = self.environment.clone(); // ✅ Save old environment
+        self.environment = environment.clone();
 
         let result = statements.iter().try_for_each(|stmt| self.execute(stmt));
 
         self.environment = previous; // Restore previous environment after execution
         result
     }
-
+    fn call_function(
+        &mut self,
+        function: &Function,
+        arguments: Vec<Arc<dyn Any + Send + Sync>>,
+    ) -> Result<Arc<dyn Any + Send + Sync>, String> {
+        let environment = Rc::new(RefCell::new(Environment::new(Some(function.closure.clone()))));
     
+        // Bind function parameters to arguments
+        for (param, arg) in function.params.iter().zip(arguments.iter()) {
+            environment.borrow_mut().define(param.lexeme.clone(), arg.clone());
+        }
+    
+        // Store the current environment and switch to the function's environment
+        let previous_environment = self.environment.clone();
+        self.environment = environment.clone();
+    
+        // Execute function body
+        let result = (|| {
+            for stmt in &function.body {
+                if let Stmt::Return { value, .. } = &**stmt {
+                    if let Some(expr) = value {
+                        return self.evaluate(expr);
+                    } else {
+                        return Ok(Arc::new(())); // Return nil for empty return statements
+                    }
+                }
+                self.execute(&**stmt)?;
+            }
+            Ok(Arc::new(())) // Default return value (nil)
+        })();
+    
+        // Restore the previous environment after function execution
+        self.environment = previous_environment;
+    
+        result
+    }
+    
+    
+    
+    
+
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
         match stmt {
-
-            Stmt::For { initializer, condition, increment, body } => {
+            Stmt::Return { value, .. } => {
+                let value = if let Some(expr) = value {
+                    self.evaluate(expr)?
+                } else {
+                    Arc::new(())
+                };
+                Err(format!("Return: {:?}", value))
+            }
+            Stmt::Function { name, params, body } => {
+                let function = Arc::new(Function::new(
+                    name.lexeme.clone(),
+                    params.clone(),
+                    body.iter().map(|stmt| Box::new(stmt.clone())).collect(),
+                    self.environment.clone(),
+                ));
+            
+                self.environment.borrow_mut().define(
+                    name.lexeme.clone(),
+                    function.clone() as Arc<dyn Any + Send + Sync>, // Ensure it's stored as a dynamic type
+                );
+            
+                Ok(())
+            }
+            
+            Stmt::For {
+                initializer,
+                condition,
+                increment,
+                body,
+            } => {
                 if let Some(init) = initializer {
                     self.execute(init)?;
                 }
@@ -79,23 +173,26 @@ impl Interpreter {
             Stmt::Input { name } => {
                 // Read user input from the console
                 let mut input = String::new();
-                std::io::stdin().read_line(&mut input).expect("Failed to read input");// Read user input from the console
+                std::io::stdin()
+                    .read_line(&mut input)
+                    .expect("Failed to read input"); // Read user input from the console
                 let input = input.trim().to_string(); // Remove whitespace
-            
+
                 // Try parsing as number, otherwise store as string
                 let value: Arc<dyn Any + Send + Sync> = if let Ok(num) = input.parse::<f64>() {
                     Arc::new(num) // Store as number if possible
                 } else {
                     Arc::new(input) // Store as string otherwise
                 };
-            
-                self.environment.borrow_mut().assign(name, value).map_err(|e| e.to_string())
+
+                self.environment
+                    .borrow_mut()
+                    .assign(name, value)
+                    .map_err(|e| e.to_string())
             }
-            
+
             Stmt::While { condition, body } => {
-              
                 while {
-                    
                     let result = self.evaluate(condition)?;
                     self.is_truthy(&result)
                 } {
@@ -108,8 +205,12 @@ impl Interpreter {
                 let new_env = Environment::new(Some(enclosing));
                 self.execute_block(statements, Rc::new(RefCell::new(new_env)))
             }
-            
-            Stmt::If { condition, then_branch, else_branch } => {
+
+            Stmt::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
                 let condition = self.evaluate(condition)?;
                 if let Some(b) = condition.downcast_ref::<bool>() {
                     if *b {
@@ -123,7 +224,7 @@ impl Interpreter {
                     Err("Condition must be a boolean.".to_string())
                 }
             }
-            
+
             Stmt::Var { name, initializer } => {
                 let value = if let Some(init) = initializer {
                     self.evaluate(init)?
@@ -139,9 +240,11 @@ impl Interpreter {
                 } else {
                     Arc::new(()) as Arc<dyn Any + Send + Sync>
                 };
-                self.environment.borrow_mut().define(name.clone(), cloned_value);
+                self.environment
+                    .borrow_mut()
+                    .define(name.clone(), cloned_value);
                 Ok(())
-            },
+            }
             Stmt::Expression { expression } => {
                 self.evaluate(expression)?;
                 Ok(())
@@ -151,18 +254,38 @@ impl Interpreter {
                 println!("{}", self.stringify(&value)); // Actual print statement
                 Ok(())
             }
-          
         }
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<Arc<dyn Any + Send + Sync>, String> {
         match expr {
-          
-            
-            Expr::Logical { left, operator, right } => {
+
+            Expr::Call { callee, arguments } => {
+                // ✅ Step 1: Evaluate function name
+                let function_value = self.evaluate(callee)?;
+    
+                // ✅ Step 2: Cast to `Function`
+                let function = function_value
+                    .downcast_ref::<Function>()
+                    .ok_or_else(|| "Runtime error: Expected function, found unsupported type.".to_string())?;
+    
+                // ✅ Step 3: Evaluate function arguments
+                let mut args = Vec::new();
+                for arg in arguments {
+                    args.push(self.evaluate(arg)?);
+                }
+    
+                // ✅ Step 4: Execute function
+                self.call_function(function, args)
+            }
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => {
                 let left_val = self.evaluate(left)?;
                 let left_truthy = self.is_truthy(&left_val);
-            
+
                 match operator.token_type {
                     TokenType::OR => {
                         if left_truthy {
@@ -174,15 +297,23 @@ impl Interpreter {
                             return Ok(Arc::new(false)); // Ensuring a boolean result
                         }
                     }
-                    _ => return Err(format!("Unsupported logical operator: {:?}", operator.token_type)),
+                    _ => {
+                        return Err(format!(
+                            "Unsupported logical operator: {:?}",
+                            operator.token_type
+                        ))
+                    }
                 }
-            
+
                 let right_val = self.evaluate(right)?;
                 Ok(Arc::new(self.is_truthy(&right_val))) // Ensure boolean result
             }
-            
-    
-            Expr::If { condition, then_branch, else_branch } => {
+
+            Expr::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
                 let condition = self.evaluate(condition)?;
                 if let Some(b) = condition.downcast_ref::<bool>() {
                     if *b {
@@ -198,9 +329,9 @@ impl Interpreter {
             }
             Expr::Variable(name) => {
                 let token = Token::new(
-                    TokenType::IDENTIFIER, 
-                    name.name.lexeme.clone(), 
-                    TokenLiteral::Identifier(name.name.lexeme.clone())
+                    TokenType::IDENTIFIER,
+                    name.name.lexeme.clone(),
+                    TokenLiteral::Identifier(name.name.lexeme.clone()),
                 );
             
                 match self.environment.borrow().get(&token) {
@@ -213,6 +344,8 @@ impl Interpreter {
                             Ok(Arc::new(*v))
                         } else if value.is::<()>() {
                             Ok(Arc::new(TokenLiteral::Null)) // ✅ Return `nil` for uninitialized variables
+                        } else if let Some(func) = value.downcast_ref::<Function>() {
+                            Ok(Arc::new(func.clone())) // ✅ Return the function reference
                         } else {
                             Err("Unsupported type.".to_string())
                         }
@@ -221,6 +354,7 @@ impl Interpreter {
                 }
             }
             
+
             Expr::Assign(name, value_expr) => {
                 let value = self.evaluate(value_expr)?;
                 let cloned_value = if let Some(v) = value.downcast_ref::<f64>() {
@@ -232,7 +366,17 @@ impl Interpreter {
                 } else {
                     Arc::new(()) as Arc<dyn Any + Send + Sync>
                 };
-                self.environment.borrow_mut().assign(&Token::new(TokenType::IDENTIFIER, name.clone(), TokenLiteral::Identifier(name.clone())), cloned_value).map_err(|e| e.to_string())?;
+                self.environment
+                    .borrow_mut()
+                    .assign(
+                        &Token::new(
+                            TokenType::IDENTIFIER,
+                            name.clone(),
+                            TokenLiteral::Identifier(name.clone()),
+                        ),
+                        cloned_value,
+                    )
+                    .map_err(|e| e.to_string())?;
                 Ok(value)
             }
             Expr::Literal(lit) => {
@@ -241,14 +385,12 @@ impl Interpreter {
                         TokenLiteral::Number(n) => Ok(Arc::new(*n)),
                         TokenLiteral::String(s) => Ok(Arc::new(s.clone())),
                         TokenLiteral::Identifier(id) => Ok(Arc::new(id.clone())),
-                        TokenLiteral::Boolean(b) => Ok(Arc::new(*b)),  
+                        TokenLiteral::Boolean(b) => Ok(Arc::new(*b)),
                         TokenLiteral::Null => Ok(Arc::new(())),
                     }
-                } 
-                else if let Some(b) = lit.value.downcast_ref::<bool>() {
+                } else if let Some(b) = lit.value.downcast_ref::<bool>() {
                     Ok(Arc::new(*b))
-                } 
-              else {
+                } else {
                     Err("Unknown literal type.".to_string())
                 }
             }
@@ -280,10 +422,15 @@ impl Interpreter {
 
                 match binary.operator.token_type {
                     TokenType::PLUS => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l + r));
                         }
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<String>(), right.downcast_ref::<String>()) {
+                        if let (Some(l), Some(r)) = (
+                            left.downcast_ref::<String>(),
+                            right.downcast_ref::<String>(),
+                        ) {
                             return Ok(Arc::new(format!("{}{}", l, r)));
                         }
                         // NEW: Allow string + any other type by converting to string
@@ -295,21 +442,27 @@ impl Interpreter {
                         }
                         Err("Operands must be two numbers or two strings.".to_string())
                     }
-                    
+
                     TokenType::MINUS => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l - r));
                         }
                         Err("Operands must be numbers.".to_string())
                     }
                     TokenType::STAR => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l * r));
                         }
                         Err("Operands must be numbers.".to_string())
                     }
                     TokenType::SLASH => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             if *r == 0.0 {
                                 return Err("Division by zero.".to_string());
                             }
@@ -319,44 +472,62 @@ impl Interpreter {
                     }
 
                     TokenType::EQUAL_EQUAL => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l == r));
                         }
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<String>(), right.downcast_ref::<String>()) {
+                        if let (Some(l), Some(r)) = (
+                            left.downcast_ref::<String>(),
+                            right.downcast_ref::<String>(),
+                        ) {
                             return Ok(Arc::new(l == r));
                         }
                         Err("Operands must be two numbers or two strings.".to_string())
                     }
                     TokenType::BANG_EQUAL => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l != r));
                         }
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<String>(), right.downcast_ref::<String>()) {
+                        if let (Some(l), Some(r)) = (
+                            left.downcast_ref::<String>(),
+                            right.downcast_ref::<String>(),
+                        ) {
                             return Ok(Arc::new(l != r));
                         }
                         Err("Operands must be two numbers or two strings.".to_string())
                     }
 
                     TokenType::GREATER => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l > r));
                         }
                         Err("Operands must be numbers.".to_string())
                     }
                     TokenType::GREATER_EQUAL => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l >= r));
                         }
                         Err("Operands must be numbers.".to_string())
                     }
                     TokenType::LESS => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l < r));
                         }
                         Err("Operands must be numbers.".to_string())
                     }
                     TokenType::LESS_EQUAL => {
-                        if let (Some(l), Some(r)) = (left.downcast_ref::<f64>(), right.downcast_ref::<f64>()) {
+                        if let (Some(l), Some(r)) =
+                            (left.downcast_ref::<f64>(), right.downcast_ref::<f64>())
+                        {
                             return Ok(Arc::new(l <= r));
                         }
                         Err("Operands must be numbers.".to_string())
@@ -364,7 +535,6 @@ impl Interpreter {
                     _ => Err("Unknown binary operator.".to_string()),
                 }
             }
-            
         }
     }
 
@@ -383,5 +553,4 @@ impl Interpreter {
         }
         "Unknown".to_string()
     }
-    
 }

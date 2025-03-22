@@ -17,17 +17,12 @@ pub struct RuntimeError {
 impl RuntimeError {
     pub fn new(token: &Token, message: String) -> Self {
         RuntimeError {
-            
             token: token.clone(),
             message,
         }
-    
-
     }
 }
 use std::fmt;
-
-
 
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

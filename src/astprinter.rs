@@ -1,11 +1,9 @@
-use crate::expr::{Expr, ExprVisitor, Binary, Grouping, Literal, Unary, Variable};
-use crate::token:: TokenLiteral;
-
+use crate::expr::{Binary, Expr, ExprVisitor, Grouping, Literal, Unary, Variable};
+use crate::token::TokenLiteral;
 
 pub struct AstPrinter;
 
 impl AstPrinter {
-
     pub fn new() -> Self {
         AstPrinter
     }
@@ -34,7 +32,6 @@ impl ExprVisitor for AstPrinter {
         self.parenthesize("group", &[&expr.expression])
     }
 
-
     fn visit_literal(&self, expr: &Literal) -> String {
         if let Some(token_literal) = expr.value.downcast_ref::<TokenLiteral>() {
             match token_literal {
@@ -45,7 +42,7 @@ impl ExprVisitor for AstPrinter {
                 TokenLiteral::Null => return "nil".to_string(),
             }
         }
-        
+
         if let Some(b) = expr.value.downcast_ref::<bool>() {
             return b.to_string();
         }
@@ -55,7 +52,7 @@ impl ExprVisitor for AstPrinter {
         if let Some(s) = expr.value.downcast_ref::<String>() {
             return format!("\"{}\"", s);
         }
-        
+
         "nil".to_string()
     }
     fn visit_unary(&self, expr: &Unary) -> String {
@@ -65,5 +62,3 @@ impl ExprVisitor for AstPrinter {
         expr.name.lexeme.clone()
     }
 }
-
-

@@ -1,7 +1,4 @@
-var n;
-write("give me value of n");
-scan(n);
-while(n<10000){
-    write(n);
-    n=n+1;
+fun add(a, b) {
+    return a + b;
 }
+write( add(3, 5)); 
