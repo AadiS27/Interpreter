@@ -2,7 +2,7 @@ use crate::expr::Variable;
 use crate::expr::{Binary, Expr, Grouping, Literal, Unary};
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenLiteral, TokenType};
-use std::sync::Arc;
+
 
 #[derive(Debug)]
 pub struct Parser {
@@ -160,13 +160,13 @@ impl Parser {
             return Ok(Expr::Literal(Literal::new(TokenLiteral::Null)));
         }
     
-        // ✅ Handle identifiers (variables or function calls)
+        //  Handle identifiers (variables or function calls)
         if self.match_tokens(&[TokenType::IDENTIFIER]) {
             let mut expr = Expr::Variable(Variable {
                 name: self.previous().clone(),
             });
     
-            // ✅ If followed by '(', parse it as a function call
+            //  If followed by '(', parse it as a function call
             while self.match_tokens(&[TokenType::LEFT_PAREN]) {
                 expr = self.parse_call(expr)?;
             }
@@ -174,7 +174,7 @@ impl Parser {
             return Ok(expr);
         }
     
-        // ✅ Handle grouping (parentheses)
+        //  Handle grouping (parentheses)
         if self.match_tokens(&[TokenType::LEFT_PAREN]) {
             let expr = self.expression()?;
             self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
@@ -284,7 +284,7 @@ impl Parser {
             return Some(self.print_statement());
         }
         if self.match_tokens(&[TokenType::LEFT_BRACE]) {
-            return Some(Stmt::Block(self.block())); // ✅ NEW: Handle block statements
+            return Some(Stmt::Block(self.block())); //  NEW: Handle block statements
         }
         if self.match_tokens(&[TokenType::IF]) {
             return Some(self.if_statement());
@@ -495,19 +495,19 @@ impl Parser {
             None => return Err(ParseError::new("Expected statement for loop body")),
         };
 
-        // ✅ Append the increment to the end of the loop
+        //  Append the increment to the end of the loop
         if let Some(inc) = increment {
             body = Stmt::Block(vec![body, Stmt::Expression { expression: inc }]);
         }
 
-        // ✅ Convert into `while (condition) { body }`
+        //  Convert into `while (condition) { body }`
         let while_loop = Stmt::While {
             condition: condition
                 .unwrap_or(Expr::Literal(Literal::new(TokenLiteral::Boolean(true)))), // Default: Always true
             body: Box::new(body),
         };
 
-        // ✅ Wrap everything in a block: `{ var i = 0; while (i < 5) { body; i = i + 1; } }`
+        //  Wrap everything in a block: `{ var i = 0; while (i < 5) { body; i = i + 1; } }`
         if let Some(init) = initializer {
             return Ok(Stmt::Block(vec![*init, while_loop]));
         }

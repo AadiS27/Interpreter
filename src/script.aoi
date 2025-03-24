@@ -1,12 +1,4 @@
-// Recursive function that subtracts 1 from n until it reaches 0
-fun subtract(n) {
-    if (n == 0) {
-        return;
-    }
-    write(n);
-    subtract(n - 1);  // Recursive call with n - 1
+for(var i=0;i<1000;i=i+1){
+    write(i);
 }
 
-// Start the recursion with 5
-var num = 5;
-subtract(num);

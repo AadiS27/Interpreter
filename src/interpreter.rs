@@ -71,7 +71,7 @@ impl Interpreter {
         statements: &[Stmt],
         environment: Rc<RefCell<Environment>>,
     ) -> Result<(), String> {
-        let previous = self.environment.clone(); // ✅ Save old environment
+        let previous = self.environment.clone(); //  Save old environment
         self.environment = environment.clone();
 
         let result = statements.iter().try_for_each(|stmt| self.execute(stmt));
@@ -103,9 +103,8 @@ impl Interpreter {
             match self.execute(&**stmt) {
                 Err(e) if e.starts_with("Return:") => {
                     // Extract the value from the error message
-                    // This is a temporary solution until we implement proper return handling
                     let value_str = e.strip_prefix("Return: ").unwrap_or("");
-                    
+    
                     // Try to convert common types
                     if value_str == "true" {
                         return_value = Some(Arc::new(true));
@@ -116,6 +115,12 @@ impl Interpreter {
                     } else if let Ok(num) = value_str.parse::<f64>() {
                         return_value = Some(Arc::new(num));
                     } else {
+                        // Prevent issues with large numbers or incorrect values
+                        // Checking for extremely large values and handling them appropriately
+                        if value_str.len() > 100 {
+                            return Err("Value too large to process.".to_string());
+                        }
+    
                         // Remove the debug formatting artifacts from the string
                         let cleaned_str = value_str.trim()
                             .trim_start_matches("Some(")
@@ -138,13 +143,6 @@ impl Interpreter {
     
         Ok(return_value.unwrap_or_else(|| Arc::new(0_i64)))
     }
-    
-    
-    
-    
-    
-    
-    
     
 
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), String> {
@@ -317,12 +315,12 @@ impl Interpreter {
             
                 let result = self.call_function(function, args)?;
                 
-                // ✅ Ensure result is properly unwrapped
+                //  Ensure result is properly unwrapped
                 if let Some(value) = result.downcast_ref::<i64>() {
-                    return Ok(Arc::new(*value)); // ✅ Convert back to expected type
+                    return Ok(Arc::new(*value)); //  Convert back to expected type
                 }
                 
-                Ok(result) // ✅ Ensure correct type is returned
+                Ok(result) //  Ensure correct type is returned
             }
             
             Expr::Logical {
@@ -393,14 +391,14 @@ impl Interpreter {
                         } else if let Some(v) = value.downcast_ref::<bool>() {
                             Ok(Arc::new(*v))
                         } else if value.is::<()>() {
-                            Ok(Arc::new(TokenLiteral::Null)) // ✅ Return `nil` for uninitialized variables
+                            Ok(Arc::new(TokenLiteral::Null)) //  Return `nil` for uninitialized variables
                         } else if let Some(func) = value.downcast_ref::<Function>() {
-                            Ok(Arc::new(func.clone())) // ✅ Return the function reference
+                            Ok(Arc::new(func.clone())) //  Return the function reference
                         } else {
                             Err("Unsupported type.".to_string())
                         }
                     }
-                    Err(_) => Err(format!("Undefined variable '{}'.", name.name.lexeme)), // ✅ Return `nil` if variable is undefined
+                    Err(_) => Err(format!("Undefined variable '{}'.", name.name.lexeme)), //  Return `nil` if variable is undefined
                 }
             }
             
