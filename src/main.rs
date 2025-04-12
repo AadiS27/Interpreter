@@ -28,6 +28,8 @@ async fn run_handler(bytes: Bytes) -> impl IntoResponse {
     (StatusCode::OK, result)
 }
 
+
+
 fn run_code(source: &str) -> String {
     let mut tokenizer = Tokensizer::new(source.to_string());
     let tokens = tokenizer.tokenize();
@@ -36,8 +38,8 @@ fn run_code(source: &str) -> String {
     match parser.parse() {
         Some(statements) => {
             let mut interpreter = Interpreter::new();
-            interpreter.interpret(&statements);
-            "Execution completed successfully.".to_string()
+            let result = interpreter.interpret(&statements);
+            result
         }
         None => "Parsing failed due to syntax errors.".to_string(),
     }
@@ -48,7 +50,7 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() >= 2 && args[1] == "server" {
-        println!("🚀 Aoi interpreter server running on http://localhost:8080");
+        println!("Aoi interpreter server running on http://localhost:8080");
 
         let app = Router::new().route("/run", post(run_handler));
         let addr = SocketAddr::from(([127, 0, 0, 1], 8080));

@@ -36,21 +36,29 @@ impl Function {
 }
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
+    output: String,
 }
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
             environment: Rc::new(RefCell::new(environment::Environment::new(None))),
+            output: String::new(),
         }
     }
 
-    pub fn interpret(&mut self, statements: &[Stmt]) {
+
+
+    pub fn interpret(&mut self, statements: &[Stmt]) -> String {
         for statement in statements {
             if let Err(err) = self.visit_stmt(statement) {
-                eprintln!("Runtime error: {}", err);
+                self.output.push_str(&format!("Runtime error: {}\n", err));
             }
         }
+        self.output.clone()
     }
+    
+    
+    
     fn execute(&mut self, stmt: &Stmt) -> Result<(), String> {
         self.visit_stmt(stmt)
     }
@@ -292,9 +300,11 @@ impl Interpreter {
             }
             Stmt::Print { expression } => {
                 let value = self.evaluate(expression)?;
-                println!("{}", self.stringify(&value)); // Actual print statement
+                let output_line = format!("{}\n", self.stringify(&value));
+                self.output.push_str(&output_line); // <-- Capture output
                 Ok(())
             }
+            
         }
     }
 
