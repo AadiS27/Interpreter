@@ -44,12 +44,6 @@ impl Environment {
     }
 
     /// Creates a new environment with an enclosing scope (nested scope).
-    pub fn with_enclosing(enclosing: Rc<RefCell<Environment>>) -> Self {
-        Environment {
-            values: HashMap::new(),
-            enclosing: Some(enclosing),
-        }
-    }
 
     /// Defines a new variable or updates an existing one in the current scope.
     pub fn define(&mut self, name: String, value: Arc<dyn Any + Send + Sync>) {

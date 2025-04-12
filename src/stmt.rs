@@ -1,6 +1,6 @@
 use crate::expr::Expr;
 use crate::token::Token;
-
+#[allow(dead_code)]
 #[derive(Clone)]
 pub enum Stmt {
     Expression {

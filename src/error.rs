@@ -1,4 +1,5 @@
 use crate::token::Token;
+#[warn(dead_code)]
 
 pub fn error(line: usize, message: &str, context: &str) {
     eprintln!(
@@ -9,16 +10,18 @@ pub fn error(line: usize, message: &str, context: &str) {
         " ".repeat(context.len())
     );
 }
+
+
 pub struct RuntimeError {
-    pub token: Token,
-    pub message: String,
+    pub _token: Token,
+    pub _message: String,
 }
 
 impl RuntimeError {
-    pub fn new(token: &Token, message: String) -> Self {
+    pub fn new(token: &Token, _message: String) -> Self {
         RuntimeError {
-            token: token.clone(),
-            message,
+            _token: token.clone(),
+            _message,
         }
     }
 }

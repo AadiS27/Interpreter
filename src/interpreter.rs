@@ -6,7 +6,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
-
+#[allow(dead_code)]
 #[derive(Clone)]
 struct Function {
     name: String,

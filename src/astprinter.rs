@@ -4,13 +4,7 @@ use crate::token::TokenLiteral;
 pub struct AstPrinter;
 
 impl AstPrinter {
-    pub fn new() -> Self {
-        AstPrinter
-    }
-    pub fn print(&self, expr: &Expr) -> String {
-        expr.accept(self) // Now it returns the AST as a string
-    }
-
+   
     fn parenthesize(&self, name: &str, expressions: &[&Expr]) -> String {
         let mut result = String::from("(");
         result.push_str(name);

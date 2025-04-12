@@ -2,6 +2,7 @@ use crate::expr::Variable;
 use crate::expr::{Binary, Expr, Grouping, Literal, Unary};
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenLiteral, TokenType};
+#[allow(dead_code)]
 
 
 #[derive(Debug)]
@@ -29,7 +30,7 @@ impl fmt::Display for ParseError {
         write!(f, "{}", self.message)
     }
 }
-
+#[allow(dead_code)]
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
@@ -136,7 +137,7 @@ impl Parser {
 
         match self.primary() {
             Ok(expr) => expr,
-            Err(err) => {
+            Err(_err) => {
                 // Handle the error appropriately, for example by returning a default expression
                 return Expr::Literal(Literal::new(TokenLiteral::Null));
             }
@@ -300,7 +301,7 @@ impl Parser {
         if self.match_tokens(&[TokenType::WHILE]) {
             return match self.while_statement() {
                 Ok(stmt) => Some(stmt),
-                Err(err) => {
+                Err(_err) => {
                     self.synchronize();
                     None
                 }
@@ -309,7 +310,7 @@ impl Parser {
     if self.match_tokens(&[TokenType::FUN]) {
         return match self.function() {
             Ok(stmt) => Some(stmt),
-            Err(err) => {
+            Err(_err) => {
                 self.synchronize();
                 None
             }
@@ -321,7 +322,7 @@ impl Parser {
     if self.match_tokens(&[TokenType::FOR]) {
             return match self.for_statement() {
                 Ok(stmt) => Some(stmt),
-                Err(err) => {
+                Err(_err) => {
                     self.synchronize();
                     None
                 }
@@ -354,7 +355,7 @@ impl Parser {
     fn expression_statement(&mut self) -> Option<Stmt> {
         let expr = match self.expression() {
             Ok(expr) => expr,
-            Err(err) => {
+            Err(_err) => {
                 self.synchronize();
                 return None;
             }

@@ -1,6 +1,7 @@
 // Generated Rust AST for Expr
 use crate::token::Token;
 use std::any::Any;
+#[allow(dead_code)]
 
 pub trait ExprVisitor {
     fn visit_binary(&self, expr: &Binary) -> String;
@@ -13,6 +14,7 @@ pub trait ExprVisitor {
 //     fn accept<T>(&self, visitor: & ExprVisitor<T>) -> T;
 // }
 #[derive(Clone)]
+#[allow(dead_code)]
 pub enum Expr {
     Binary(Binary),
     Grouping(Grouping),
@@ -36,11 +38,6 @@ pub enum Expr {
     },
 }
 
-pub struct Logical {
-    pub left: Box<Expr>,
-    pub operator: Token,
-    pub right: Box<Expr>,
-}
 #[derive(Clone)]
 pub struct Binary {
     pub left: Box<Expr>,
@@ -48,27 +45,13 @@ pub struct Binary {
     pub right: Box<Expr>,
 }
 
-impl Binary {
-    pub fn new(left: Box<Expr>, operator: Token, right: Box<Expr>) -> Self {
-        Binary {
-            left: left,
-            operator: operator,
-            right: right,
-        }
-    }
-}
+
 #[derive(Clone)]
 pub struct Grouping {
     pub expression: Box<Expr>,
 }
 
-impl Grouping {
-    pub fn new(expression: Box<Expr>) -> Self {
-        Grouping {
-            expression: expression,
-        }
-    }
-}
+
 
 use crate::token::TokenLiteral;
 use std::fmt::Debug;
@@ -99,25 +82,14 @@ pub struct Variable {
     pub name: Token,
 }
 
-impl Variable {
-    pub fn new(name: Token) -> Self {
-        Variable { name: name }
-    }
-}
+
 #[derive(Clone)]
 pub struct Unary {
     pub operator: Token,
     pub right: Box<Expr>,
 }
 
-impl Unary {
-    pub fn new(operator: Token, right: Box<Expr>) -> Self {
-        Unary {
-            operator: operator,
-            right: right,
-        }
-    }
-}
+
 
 impl Expr {
     pub fn accept(&self, visitor: &dyn ExprVisitor) -> String {
@@ -127,7 +99,7 @@ impl Expr {
             Expr::Literal(l) => visitor.visit_literal(l),
             Expr::Unary(u) => visitor.visit_unary(u),
             Expr::Variable(v) => visitor.visit_variable(v),
-            Expr::Assign(name, expr) => format!("Assign({}, ...)", name),
+            Expr::Assign(name, _expr) => format!("Assign({}, ...)", name),
             Expr::If {
                 condition,
                 then_branch,
