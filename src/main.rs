@@ -52,7 +52,11 @@ async fn main() {
     if args.len() >= 2 && args[1] == "server" {
         println!("Aoi interpreter server running on http://localhost:8080");
 
-        let app = Router::new().route("/run", post(run_handler));
+        // Add a health check endpoint at the root path
+        let app = Router::new()
+            .route("/", axum::routing::get(|| async { "Aoi interpreter server is running" }))
+            .route("/run", post(run_handler));
+            
         let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
         let listener = TcpListener::bind(addr).await.unwrap();
         axum::serve(listener, app).await.unwrap();
