@@ -49,30 +49,28 @@ fn run_code(source: &str) -> String {
 async fn main() {
     let args: Vec<String> = env::args().collect();
 
+    // Note: binary name is args[0], first argument is args[1]
     if args.len() >= 2 && args[1] == "server" {
         println!("Aoi interpreter server running on http://localhost:8080");
 
-        // Add a health check endpoint at the root path
         let app = Router::new()
             .route("/", axum::routing::get(|| async { "Aoi interpreter server is running" }))
             .route("/run", post(run_handler));
-            
-        let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
+
+        let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
         let listener = TcpListener::bind(addr).await.unwrap();
         axum::serve(listener, app).await.unwrap();
-    } else {
+    } else if args.len() >= 2 {
         // CLI mode
-        if args.len() < 2 {
-            eprintln!("Usage:");
-            eprintln!("  cargo run <filename>       # CLI mode");
-            eprintln!("  cargo run server           # Start web server");
-            return;
-        }
-
         let filename = &args[1];
         let source = fs::read_to_string(filename).expect("Failed to read file");
 
         let result = run_code(&source);
         println!("{}", result);
+    } else {
+        eprintln!("Usage:");
+        eprintln!("  ./server <filename>       # CLI mode");
+        eprintln!("  ./server server           # Start web server");
     }
 }
+
