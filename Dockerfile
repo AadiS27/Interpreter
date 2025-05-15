@@ -47,4 +47,4 @@ USER appuser
 COPY --from=build /bin/server /bin/
 
 # Command to run the application.
-CMD ["/bin/server"]
+CMD ["/bin/server", "server"]
