@@ -31,6 +31,21 @@ async fn run_handler(bytes: Bytes) -> impl IntoResponse {
 
 
 fn run_code(source: &str) -> String {
+    // Disallow "scan" keyword
+    if source.contains("scan") {
+        return "Error: Usage of 'scan' keyword is not allowed.".to_string();
+    }
+
+    // Disallow numeric values > 148
+    let number_check = regex::Regex::new(r"\b\d+\b").unwrap();
+    for cap in number_check.captures_iter(source) {
+        if let Ok(n) = cap[0].parse::<u32>() {
+            if n > 148 {
+                return format!("Error: Numeric value '{}' exceeds the limit of 148.", n);
+            }
+        }
+    }
+
     let mut tokenizer = Tokensizer::new(source.to_string());
     let tokens = tokenizer.tokenize();
     let mut parser = parser::Parser::new(tokens);
