@@ -43,11 +43,8 @@ RUN adduser \
     appuser
 USER appuser
 
-# Copy the executable from the build stage.
+# Copy the executable from the build stage
 COPY --from=build /bin/server /bin/
-
-# Expose the port the application will use.
-EXPOSE 8080
 
 # Command to run the application.
 CMD ["/bin/server"]
