@@ -11,6 +11,9 @@ ARG APP_NAME
 ARG RAILWAY_SERVICE_ID
 WORKDIR /app
 
+
+RUN echo $RAILWAY_SERVICE_ID
+
 # Install host build dependencies.
 RUN apk add --no-cache clang lld musl-dev git
 
@@ -21,9 +24,9 @@ COPY Cargo.lock /app/Cargo.lock
 
 # Build the application.
 # Use cache mount IDs in the format s/<service-id>-<target-path> as per Railway's requirements.
-RUN --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-/app/target,sharing=locked,target=/app/target \
-    --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-/usr/local/cargo/git,sharing=locked,target=/usr/local/cargo/git \
-    --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-/usr/local/cargo/registry,sharing=locked,target=/usr/local/cargo/registry \
+RUN --mount=type=cache,id=s/$RAILWAY_SERVICE_ID-/app/target,sharing=locked,target=/app/target \
+    --mount=type=cache,id=s/$RAILWAY_SERVICE_ID-/usr/local/cargo/git,sharing=locked,target=/usr/local/cargo/git \
+    --mount=type=cache,id=s/$RAILWAY_SERVICE_ID-/usr/local/cargo/registry,sharing=locked,target=/usr/local/cargo/registry \
     cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server
 
