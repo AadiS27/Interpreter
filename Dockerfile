@@ -18,10 +18,10 @@ COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 
 # Build the application.
-# Leverage cache mounts for compiled dependencies and registry with prefixed IDs.
-RUN --mount=type=cache,id=rust-build-app-target,target=/app/target \
-    --mount=type=cache,id=rust-build-cargo-git,target=/usr/local/cargo/git/db \
-    --mount=type=cache,id=rust-build-cargo-registry,target=/usr/local/cargo/registry \
+# Use prefixed cache mount IDs to avoid conflicts and ensure compatibility.
+RUN --mount=type=cache,id=${APP_NAME}-target,sharing=locked,target=/app/target \
+    --mount=type=cache,id=${APP_NAME}-cargo-git,sharing=locked,target=/usr/local/cargo/git \
+    --mount=type=cache,id=${APP_NAME}-cargo-registry,sharing=locked,target=/usr/local/cargo/registry \
     cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server
 
