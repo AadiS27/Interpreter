@@ -2,11 +2,13 @@
 
 ARG RUST_VERSION=1.84.1
 ARG APP_NAME=rust
+ARG RAILWAY_SERVICE_ID
 
 ################################################################################
 # Create a stage for building the application.
 FROM rust:${RUST_VERSION}-alpine AS build
 ARG APP_NAME
+ARG RAILWAY_SERVICE_ID
 WORKDIR /app
 
 # Install host build dependencies.
@@ -18,10 +20,10 @@ COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 
 # Build the application.
-# Use prefixed cache mount IDs to avoid conflicts and ensure compatibility.
-RUN --mount=type=cache,id=${APP_NAME}-target,sharing=locked,target=/app/target \
-    --mount=type=cache,id=${APP_NAME}-cargo-git,sharing=locked,target=/usr/local/cargo/git \
-    --mount=type=cache,id=${APP_NAME}-cargo-registry,sharing=locked,target=/usr/local/cargo/registry \
+# Use cache mount IDs prefixed with s/<RAILWAY_SERVICE_ID>-<cache-name> as per Railway's requirements.
+RUN --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-target-cache,sharing=locked,target=/app/target \
+    --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-cargo-git-cache,sharing=locked,target=/usr/local/cargo/git \
+    --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-cargo-registry-cache,sharing=locked,target=/usr/local/cargo/registry \
     cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server
 
