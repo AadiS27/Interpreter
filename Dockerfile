@@ -18,10 +18,10 @@ COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 
 # Build the application.
-# Leverage cache mounts for compiled dependencies and registry.
-RUN --mount=type=cache,target=/app/target \
-    --mount=type=cache,target=/usr/local/cargo/git/db \
-    --mount=type=cache,target=/usr/local/cargo/registry \
+# Leverage cache mounts for compiled dependencies and registry with unique IDs.
+RUN --mount=type=cache,id=app-target,target=/app/target \
+    --mount=type=cache,id=cargo-git,target=/usr/local/cargo/git/db \
+    --mount=type=cache,id=cargo-registry,target=/usr/local/cargo/registry \
     cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server
 
