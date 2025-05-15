@@ -21,6 +21,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
+use std::str::FromStr;
 
 async fn run_handler(bytes: Bytes) -> impl IntoResponse {
     let code = String::from_utf8(bytes.to_vec()).unwrap();
@@ -64,7 +65,6 @@ fn run_code(source: &str) -> String {
 async fn main() {
     let args: Vec<String> = env::args().collect();
 
-    // Note: binary name is args[0], first argument is args[1]
     if args.len() >= 2 && args[1] == "server" {
         println!("Aoi interpreter server running on http://localhost:8080");
 
@@ -72,7 +72,9 @@ async fn main() {
             .route("/", axum::routing::get(|| async { "Aoi interpreter server is running" }))
             .route("/run", post(run_handler));
 
-        let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+        // Read PORT from environment, default to 8080
+        let port = env::var("PORT").unwrap_or("8080".to_string());
+        let addr = SocketAddr::from_str(&format!("0.0.0.0:{}", port)).expect("Invalid PORT value");
         let listener = TcpListener::bind(addr).await.unwrap();
         axum::serve(listener, app).await.unwrap();
     } else if args.len() >= 2 {

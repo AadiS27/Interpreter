@@ -1,13 +1,18 @@
 # syntax=docker/dockerfile:1
 
-ARG RUST_VERSION=1.84.1
+ARG RUST_VERSION=1.84.0
 ARG APP_NAME=rust
+ARG RAILWAY_SERVICE_ID
 
 ################################################################################
 # Create a stage for building the application.
 FROM rust:${RUST_VERSION}-alpine AS build
 ARG APP_NAME
+ARG RAILWAY_SERVICE_ID
 WORKDIR /app
+
+
+RUN echo $RAILWAY_SERVICE_ID
 
 # Install host build dependencies.
 RUN apk add --no-cache clang lld musl-dev git
@@ -18,11 +23,8 @@ COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 
 # Build the application.
-# Use prefixed cache mount IDs to avoid conflicts and ensure compatibility.
-RUN --mount=type=cache,id=${APP_NAME}-target,sharing=locked,target=/app/target \
-    --mount=type=cache,id=${APP_NAME}-cargo-git,sharing=locked,target=/usr/local/cargo/git \
-    --mount=type=cache,id=${APP_NAME}-cargo-registry,sharing=locked,target=/usr/local/cargo/registry \
-    cargo build --locked --release && \
+# Use cache mount IDs in the format s/<service-id>-<target-path> as per Railway's requirements.
+RUN cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server
 
 ################################################################################
@@ -41,11 +43,8 @@ RUN adduser \
     appuser
 USER appuser
 
-# Copy the executable from the build stage.
+# Copy the executable from the build stage
 COPY --from=build /bin/server /bin/
 
-# Expose the port the application will use.
-EXPOSE 8080
-
 # Command to run the application.
-CMD ["/bin/server"]
+CMD ["/bin/server", "server"]
