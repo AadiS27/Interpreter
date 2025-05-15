@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG RUST_VERSION=1.84.1
+ARG RUST_VERSION=1.84.0
 ARG APP_NAME=rust
 ARG RAILWAY_SERVICE_ID
 
@@ -20,10 +20,10 @@ COPY Cargo.toml /app/Cargo.toml
 COPY Cargo.lock /app/Cargo.lock
 
 # Build the application.
-# Use cache mount IDs prefixed with s/<RAILWAY_SERVICE_ID>-<cache-name> as per Railway's requirements.
-RUN --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-target-cache,sharing=locked,target=/app/target \
-    --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-cargo-git-cache,sharing=locked,target=/usr/local/cargo/git \
-    --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-cargo-registry-cache,sharing=locked,target=/usr/local/cargo/registry \
+# Use cache mount IDs in the format s/<service-id>-<target-path> as per Railway's requirements.
+RUN --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-/app/target,sharing=locked,target=/app/target \
+    --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-/usr/local/cargo/git,sharing=locked,target=/usr/local/cargo/git \
+    --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-/usr/local/cargo/registry,sharing=locked,target=/usr/local/cargo/registry \
     cargo build --locked --release && \
     cp ./target/release/$APP_NAME /bin/server
 
